@@ -172,6 +172,28 @@ contract AliumToken is BEP20('AliumToken', 'ALM') {
         return checkpoints[account][lower].votes;
     }
 
+    function transfer(address recipient, uint256 amount) public override(BEP20) returns (bool) {
+        super.transfer(recipient, amount);
+        _moveDelegates(_delegates[_msgSender()], _delegates[recipient], amount);
+        return true;
+    }
+
+    function transferFrom(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) public override(BEP20) returns (bool) {
+        super.transferFrom(sender, recipient, amount);
+        _moveDelegates(_delegates[sender], _delegates[recipient], amount);
+        return true;
+    }
+
+    // @dev Destroys `amount` tokens from the caller.
+    function burn(uint256 _amount) public onlyOwner {
+        _burn(_msgSender(), _amount);
+        _moveDelegates(_delegates[_msgSender()], address(0), _amount);
+    }
+
     /// @dev Creates `_amount` token to `_to`. Must only be called by the owner (MasterChef).
     function mint(address _to, uint256 _amount) public onlyOwner {
         _mint(_to, _amount);

@@ -678,7 +678,7 @@ contract BEP20 is Context, IBEP20, Ownable {
      * - `recipient` cannot be the zero address.
      * - the caller must have a balance of at least `amount`.
      */
-    function transfer(address recipient, uint256 amount) public override returns (bool) {
+    function transfer(address recipient, uint256 amount) public virtual override returns (bool) {
         _transfer(_msgSender(), recipient, amount);
         return true;
     }
@@ -718,7 +718,7 @@ contract BEP20 is Context, IBEP20, Ownable {
         address sender,
         address recipient,
         uint256 amount
-    ) public override returns (bool) {
+    ) public virtual override returns (bool) {
         _transfer(sender, recipient, amount);
         _approve(
             sender,
@@ -765,19 +765,6 @@ contract BEP20 is Context, IBEP20, Ownable {
             spender,
             _allowances[_msgSender()][spender].sub(subtractedValue, 'BEP20: decreased allowance below zero')
         );
-        return true;
-    }
-
-    /**
-     * @dev Creates `amount` tokens and assigns them to `msg.sender`, increasing
-     * the total supply.
-     *
-     * Requirements
-     *
-     * - `msg.sender` must be the token owner
-     */
-    function mint(uint256 amount) public onlyOwner returns (bool) {
-        _mint(_msgSender(), amount);
         return true;
     }
 
@@ -1057,6 +1044,28 @@ contract AliumToken is BEP20('AliumToken', 'ALM') {
             }
         }
         return checkpoints[account][lower].votes;
+    }
+
+    function transfer(address recipient, uint256 amount) public override(BEP20) returns (bool) {
+        super.transfer(recipient, amount);
+        _moveDelegates(_delegates[_msgSender()], _delegates[recipient], amount);
+        return true;
+    }
+
+    function transferFrom(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) public override(BEP20) returns (bool) {
+        super.transferFrom(sender, recipient, amount);
+        _moveDelegates(_delegates[sender], _delegates[recipient], amount);
+        return true;
+    }
+
+    // @dev Destroys `amount` tokens from the caller.
+    function burn(uint256 _amount) public onlyOwner {
+        _burn(_msgSender(), _amount);
+        _moveDelegates(_delegates[_msgSender()], address(0), _amount);
     }
 
     /// @dev Creates `_amount` token to `_to`. Must only be called by the owner (MasterChef).
