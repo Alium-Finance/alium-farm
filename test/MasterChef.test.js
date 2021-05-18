@@ -9,13 +9,15 @@ contract('MasterChef', ([alice, bob, dev, minter]) => {
     
     let cake, chef,
         lp1, lp2, lp3, lp4, lp5, lp6, lp7, lp8, lp9
+
+    const FARMING_LIMIT = MAX_UINT256;
     
     beforeEach(async () => {
         cake = await AliumToken.new({ from: minter });
         lp1 = await MockBEP20.new('LPToken', 'LP1', '1000000', { from: minter });
         lp2 = await MockBEP20.new('LPToken', 'LP2', '1000000', { from: minter });
         lp3 = await MockBEP20.new('LPToken', 'LP3', '1000000', { from: minter });
-        chef = await MasterChef.new(cake.address, dev, '1000', '100', { from: minter });
+        chef = await MasterChef.new(cake.address, dev, '1000', '100', FARMING_LIMIT, { from: minter });
         await cake.transferOwnership(chef.address, { from: minter });
 
         await lp1.transfer(bob, '2000', { from: minter });
@@ -27,7 +29,7 @@ contract('MasterChef', ([alice, bob, dev, minter]) => {
         await lp3.transfer(alice, '2000', { from: minter });
     });
     
-    describe.only('MasterChef', () => {
+    describe('MasterChef', () => {
         it('real case', async () => {
             lp4 = await MockBEP20.new('LPToken', 'LP1', '1000000', { from: minter });
             lp5 = await MockBEP20.new('LPToken', 'LP2', '1000000', { from: minter });
@@ -110,7 +112,7 @@ contract('MasterChef', ([alice, bob, dev, minter]) => {
             assert.equal(balanceAfter, 2 * balanceBefore);
         });
 
-        it('updaate multiplier', async () => {
+        it('update multiplier', async () => {
             await chef.addPool('1000', lp1.address, true, { from: minter });
             await chef.addPool('1000', lp2.address, true, { from: minter });
             await chef.addPool('1000', lp3.address, true, { from: minter });
@@ -154,9 +156,60 @@ contract('MasterChef', ([alice, bob, dev, minter]) => {
 
         });
 
+        // @todo need check
+        it('update multiplier with limit', async () => {
+            const FARMING_LIMIT_LOCAL = 100;
+            const cakeLocal = await AliumToken.new({ from: minter });
+            const chefLocal = await MasterChef.new(cakeLocal.address, dev, '1000', '100', FARMING_LIMIT_LOCAL, { from: minter });
+            await cakeLocal.mint(alice, 50, { from: minter })
+            await cakeLocal.mint(bob, 100, { from: minter })
+            await cakeLocal.transferOwnership(chefLocal.address, { from: minter });
+
+            await chefLocal.addPool('1000', lp1.address, true, { from: minter });
+            await chefLocal.addPool('1000', lp2.address, true, { from: minter });
+            await chefLocal.addPool('1000', lp3.address, true, { from: minter });
+
+            await lp1.approve(chefLocal.address, MAX_UINT256, { from: alice });
+            await lp1.approve(chefLocal.address, MAX_UINT256, { from: bob });
+            await chefLocal.deposit(1, '100', { from: alice });
+            await chefLocal.deposit(1, '100', { from: bob });
+            await chefLocal.deposit(1, '0', { from: alice });
+            await chefLocal.deposit(1, '0', { from: bob });
+
+            await cakeLocal.approve(chefLocal.address, MAX_UINT256, { from: alice });
+            await cakeLocal.approve(chefLocal.address, MAX_UINT256, { from: bob });
+            await chefLocal.stake('50', { from: alice });
+            await chefLocal.stake('100', { from: bob });
+
+            await chefLocal.updateMultiplier('0', { from: minter });
+
+            await chefLocal.stake('0', { from: alice });
+            await chefLocal.stake('0', { from: bob });
+            await chefLocal.deposit(1, '0', { from: alice });
+            await chefLocal.deposit(1, '0', { from: bob });
+
+            assert.equal((await cakeLocal.balanceOf(alice)).toString(), '100');
+            assert.equal((await cakeLocal.balanceOf(bob)).toString(), '0');
+
+            await time.advanceBlockTo('309');
+
+            await chefLocal.stake('0', { from: alice });
+            await chefLocal.stake('0', { from: bob });
+            await chefLocal.deposit(1, '0', { from: alice });
+            await chefLocal.deposit(1, '0', { from: bob });
+
+            assert.equal((await cakeLocal.balanceOf(alice)).toString(), '100');
+            assert.equal((await cakeLocal.balanceOf(bob)).toString(), '0');
+
+            await chefLocal.unstake('50', { from: alice });
+            await chefLocal.unstake('100', { from: bob });
+            await chefLocal.withdraw(1, '100', { from: alice });
+            await chefLocal.withdraw(1, '100', { from: bob });
+        });
+
         it('should allow dev and only dev to update dev', async () => {
             assert.equal((await chef.devaddr()).valueOf(), dev);
-            await expectRevert(chef.dev(bob, { from: bob }), 'dev: wut?');
+            await expectRevert(chef.dev(bob, { from: bob }), 'MasterChef: dev wut?');
             await chef.dev(bob, { from: dev });
             assert.equal((await chef.devaddr()).valueOf(), bob);
             await chef.dev(alice, { from: bob });

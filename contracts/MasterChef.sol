@@ -7,6 +7,7 @@ import '@pancakeswap/pancake-swap-lib/contracts/access/Ownable.sol';
 
 interface IAliumToken is IBEP20 {
     function mint(address _to, uint256 _amount) external;
+    function burn(uint256 _amount) external;
 }
 
 interface IMigratorChef {
@@ -78,6 +79,9 @@ contract MasterChef is Ownable {
     // The block number when ALM mining starts.
     uint256 public startBlock;
 
+    uint256 public mintedTokens;
+    uint256 public mintingLimit;
+
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
@@ -86,7 +90,8 @@ contract MasterChef is Ownable {
         IAliumToken _alm,
         address _devaddr,
         uint256 _almPerBlock,
-        uint256 _startBlock
+        uint256 _startBlock,
+        uint256 _farmingLimit
     ) public {
         require(_devaddr != address(0), "MasterChef: set wrong dev");
         require(_almPerBlock != 0, "MasterChef: set wrong reward");
@@ -95,6 +100,7 @@ contract MasterChef is Ownable {
         devaddr = _devaddr;
         almPerBlock = _almPerBlock;
         startBlock = _startBlock;
+        mintingLimit = _farmingLimit;
 
         // staking pool
         poolInfo.push(PoolInfo({
@@ -107,34 +113,16 @@ contract MasterChef is Ownable {
         totalAllocPoint = 1000;
     }
 
-    function poolLength() external view returns (uint256) {
-        return poolInfo.length;
-    }
-
-    // View function to see pending ALMs on frontend.
-    function pendingAlium(uint256 _pid, address _user) external view returns (uint256) {
-        PoolInfo storage pool = poolInfo[_pid];
-        UserInfo storage user = userInfo[_pid][_user];
-        uint256 accALMPerShare = pool.accALMPerShare;
-        uint256 lpSupply = pool.lpToken.balanceOf(address(this));
-        if (block.number > pool.lastRewardBlock && lpSupply != 0) {
-            uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
-            uint256 almReward = multiplier.mul(almPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
-            accALMPerShare = accALMPerShare.add(almReward.mul(1e12).div(lpSupply));
-        }
-        return user.amount.mul(accALMPerShare).div(1e12).sub(user.rewardDebt);
-    }
-
     // Deposit LP tokens to MasterChef for ALM allocation.
     function deposit(uint256 _pid, uint256 _amount) external {
-        require (_pid != 0, 'withdraw CAKE by unstaking');
+        require (_pid != 0, "MasterChef: withdraw CAKE by unstaking");
 
         _deposit(_pid, _amount);
     }
 
     // Withdraw LP tokens from MasterChef.
     function withdraw(uint256 _pid, uint256 _amount) external {
-        require (_pid != 0, 'withdraw CAKE by unstaking');
+        require (_pid != 0, "MasterChef: withdraw CAKE by unstaking");
 
         _withdraw(_pid, _amount);
     }
@@ -159,9 +147,85 @@ contract MasterChef is Ownable {
         user.rewardDebt = 0;
     }
 
-    // Return reward multiplier over the given _from to _to block.
-    function getMultiplier(uint256 _from, uint256 _to) public view returns (uint256) {
-        return _to.sub(_from).mul(BONUS_MULTIPLIER);
+    function updateMultiplier(uint256 multiplierNumber) external onlyOwner {
+        BONUS_MULTIPLIER = multiplierNumber;
+    }
+
+    // Set the migrator contract. Can only be called by the owner.
+    function setMigrator(IMigratorChef _migrator) external onlyOwner {
+        migrator = _migrator;
+    }
+
+    // Add a new lp to the pool. Can only be called by the owner.
+    // XXX DO NOT add the same LP token more than once. Rewards will be messed up if you do.
+    function addPool(uint256 _allocPoint, IBEP20 _lpToken, bool _withUpdate) external onlyOwner {
+        if (_withUpdate) {
+            massUpdatePools();
+        }
+
+        uint256 lastRewardBlock = block.number > startBlock ? block.number : startBlock;
+        totalAllocPoint = totalAllocPoint.add(_allocPoint);
+        poolInfo.push(PoolInfo({
+            lpToken: _lpToken,
+            allocPoint: _allocPoint,
+            lastRewardBlock: lastRewardBlock,
+            accALMPerShare: 0
+        }));
+        _updateStakingPool();
+    }
+
+    // Update the given pool's ALM allocation point. Can only be called by the owner.
+    function setPool(uint256 _pid, uint256 _allocPoint, bool _withUpdate) external onlyOwner {
+        if (_withUpdate) {
+            massUpdatePools();
+        }
+
+        uint256 prevAllocPoint = poolInfo[_pid].allocPoint;
+        poolInfo[_pid].allocPoint = _allocPoint;
+        if (prevAllocPoint != _allocPoint) {
+            totalAllocPoint = totalAllocPoint.sub(prevAllocPoint).add(_allocPoint);
+            _updateStakingPool();
+        }
+    }
+
+    // Update dev address by the previous dev.
+    function dev(address _devaddr) external {
+        require(msg.sender == devaddr, "MasterChef: dev wut?");
+
+        devaddr = _devaddr;
+    }
+
+    // Migrate lp token to another lp contract. Can be called by anyone. We trust that migrator contract is good.
+    function migrate(uint256 _pid) external {
+        require(address(migrator) != address(0), "migrate: no migrator");
+
+        PoolInfo storage pool = poolInfo[_pid];
+        IBEP20 lpToken = pool.lpToken;
+        uint256 bal = lpToken.balanceOf(address(this));
+        lpToken.safeApprove(address(migrator), bal);
+        IBEP20 newLpToken = migrator.migrate(lpToken);
+
+        require(bal == newLpToken.balanceOf(address(this)), "migrate: bad");
+
+        pool.lpToken = newLpToken;
+    }
+
+    function poolLength() external view returns (uint256) {
+        return poolInfo.length;
+    }
+
+    // View function to see pending ALMs on frontend.
+    function pendingAlium(uint256 _pid, address _user) external view returns (uint256) {
+        PoolInfo storage pool = poolInfo[_pid];
+        UserInfo storage user = userInfo[_pid][_user];
+        uint256 accALMPerShare = pool.accALMPerShare;
+        uint256 lpSupply = pool.lpToken.balanceOf(address(this));
+        if (block.number > pool.lastRewardBlock && lpSupply != 0) {
+            uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
+            uint256 almReward = multiplier.mul(almPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
+            accALMPerShare = accALMPerShare.add(almReward.mul(1e12).div(lpSupply));
+        }
+        return user.amount.mul(accALMPerShare).div(1e12).sub(user.rewardDebt);
     }
 
     // Update reward variables for all pools. Be careful of gas spending!
@@ -178,74 +242,36 @@ contract MasterChef is Ownable {
         if (block.number <= pool.lastRewardBlock) {
             return;
         }
+
         uint256 lpSupply = pool.lpToken.balanceOf(address(this));
         if (lpSupply == 0) {
             pool.lastRewardBlock = block.number;
             return;
         }
+
         uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
+
         uint256 almReward = multiplier.mul(almPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
-        alm.mint(devaddr, almReward.div(10));
-        alm.mint(address(this), almReward);
+        if (almReward + almReward.div(10) + mintedTokens <= mintingLimit) {
+            alm.mint(devaddr, almReward.div(10));
+            alm.mint(address(this), almReward);
+            mintedTokens += almReward + almReward.div(10);
+        } else {
+            almReward = mintingLimit - mintedTokens;
+            alm.mint(address(this), almReward);
+            mintedTokens += almReward;
+            // @dev
+            if (BONUS_MULTIPLIER != 0) {
+                BONUS_MULTIPLIER = 0;
+            }
+        }
         pool.accALMPerShare = pool.accALMPerShare.add(almReward.mul(1e12).div(lpSupply));
         pool.lastRewardBlock = block.number;
     }
 
-    function updateMultiplier(uint256 multiplierNumber) public onlyOwner {
-        BONUS_MULTIPLIER = multiplierNumber;
-    }
-
-    // Set the migrator contract. Can only be called by the owner.
-    function setMigrator(IMigratorChef _migrator) public onlyOwner {
-        migrator = _migrator;
-    }
-
-    // Add a new lp to the pool. Can only be called by the owner.
-    // XXX DO NOT add the same LP token more than once. Rewards will be messed up if you do.
-    function addPool(uint256 _allocPoint, IBEP20 _lpToken, bool _withUpdate) public onlyOwner {
-        if (_withUpdate) {
-            massUpdatePools();
-        }
-        uint256 lastRewardBlock = block.number > startBlock ? block.number : startBlock;
-        totalAllocPoint = totalAllocPoint.add(_allocPoint);
-        poolInfo.push(PoolInfo({
-            lpToken: _lpToken,
-            allocPoint: _allocPoint,
-            lastRewardBlock: lastRewardBlock,
-            accALMPerShare: 0
-        }));
-        _updateStakingPool();
-    }
-
-    // Update the given pool's ALM allocation point. Can only be called by the owner.
-    function setPool(uint256 _pid, uint256 _allocPoint, bool _withUpdate) public onlyOwner {
-        if (_withUpdate) {
-            massUpdatePools();
-        }
-        uint256 prevAllocPoint = poolInfo[_pid].allocPoint;
-        poolInfo[_pid].allocPoint = _allocPoint;
-        if (prevAllocPoint != _allocPoint) {
-            totalAllocPoint = totalAllocPoint.sub(prevAllocPoint).add(_allocPoint);
-            _updateStakingPool();
-        }
-    }
-
-    // Update dev address by the previous dev.
-    function dev(address _devaddr) public {
-        require(msg.sender == devaddr, "dev: wut?");
-        devaddr = _devaddr;
-    }
-
-    // Migrate lp token to another lp contract. Can be called by anyone. We trust that migrator contract is good.
-    function migrate(uint256 _pid) public {
-        require(address(migrator) != address(0), "migrate: no migrator");
-        PoolInfo storage pool = poolInfo[_pid];
-        IBEP20 lpToken = pool.lpToken;
-        uint256 bal = lpToken.balanceOf(address(this));
-        lpToken.safeApprove(address(migrator), bal);
-        IBEP20 newLpToken = migrator.migrate(lpToken);
-        require(bal == newLpToken.balanceOf(address(this)), "migrate: bad");
-        pool.lpToken = newLpToken;
+    // Return reward multiplier over the given _from to _to block.
+    function getMultiplier(uint256 _from, uint256 _to) public view returns (uint256) {
+        return _to.sub(_from).mul(BONUS_MULTIPLIER);
     }
 
     // Safe alm transfer function, just in case if rounding error causes pool to not have enough ALMs.
@@ -277,7 +303,7 @@ contract MasterChef is Ownable {
         updatePool(_pid);
         if (user.amount > 0) {
             uint256 pending = user.amount.mul(pool.accALMPerShare).div(1e12).sub(user.rewardDebt);
-            if(pending > 0) {
+            if (pending > 0) {
                 _safeAlmTransfer(msg.sender, pending);
             }
         }
@@ -293,16 +319,19 @@ contract MasterChef is Ownable {
     function _withdraw(uint256 _pid, uint256 _amount) internal {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
-        require(user.amount >= _amount, "withdraw: not good");
+
+        require(user.amount >= _amount, "MasterChef: user balance not enough");
+
         updatePool(_pid);
         uint256 pending = user.amount.mul(pool.accALMPerShare).div(1e12).sub(user.rewardDebt);
-        if(pending > 0) {
+        if (pending > 0) {
             _safeAlmTransfer(msg.sender, pending);
         }
-        if(_amount > 0) {
+        if (_amount > 0) {
             user.amount = user.amount.sub(_amount);
             pool.lpToken.safeTransfer(address(msg.sender), _amount);
         }
+
         user.rewardDebt = user.amount.mul(pool.accALMPerShare).div(1e12);
         emit Withdraw(msg.sender, _pid, _amount);
     }
