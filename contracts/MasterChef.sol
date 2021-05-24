@@ -11,14 +11,14 @@ interface IAliumToken is IBEP20 {
 }
 
 interface IMigratorChef {
-    // Perform LP token migration from legacy PancakeSwap to AliumSwap.
+    // Perform LP token migration from legacy AliumSwap to AliumSwap.
     // Take the current LP token address and return the new LP token address.
     // Migrator should have full access to the caller's LP token.
     // Return the new LP token address.
     //
-    // XXX Migrator must have allowance access to PancakeSwap LP tokens.
+    // XXX Migrator must have allowance access to AliumSwap LP tokens.
     // AliumSwap must mint EXACTLY the same amount of AliumSwap LP tokens or
-    // else something bad will happen. Traditional PancakeSwap does not
+    // else something bad will happen. Traditional AliumSwap does not
     // do that so be careful!
     function migrate(IBEP20 token) external returns (IBEP20);
 }
@@ -115,14 +115,14 @@ contract MasterChef is Ownable {
 
     // Deposit LP tokens to MasterChef for ALM allocation.
     function deposit(uint256 _pid, uint256 _amount) external {
-        require (_pid != 0, "MasterChef: withdraw CAKE by unstaking");
+        require (_pid != 0, "MasterChef: withdraw ALM by unstaking");
 
         _deposit(_pid, _amount);
     }
 
     // Withdraw LP tokens from MasterChef.
     function withdraw(uint256 _pid, uint256 _amount) external {
-        require (_pid != 0, "MasterChef: withdraw CAKE by unstaking");
+        require (_pid != 0, "MasterChef: withdraw ALM by unstaking");
 
         _withdraw(_pid, _amount);
     }
@@ -276,9 +276,9 @@ contract MasterChef is Ownable {
 
     // Safe alm transfer function, just in case if rounding error causes pool to not have enough ALMs.
     function _safeAlmTransfer(address _to, uint256 _amount) internal {
-        uint256 cakeBal = alm.balanceOf(address(this));
-        if (_amount > cakeBal) {
-            alm.transfer(_to, cakeBal);
+        uint256 ALMBal = alm.balanceOf(address(this));
+        if (_amount > ALMBal) {
+            alm.transfer(_to, ALMBal);
         } else {
             alm.transfer(_to, _amount);
         }
