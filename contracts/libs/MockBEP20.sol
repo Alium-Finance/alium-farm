@@ -1,6 +1,6 @@
 pragma solidity 0.6.12;
 
-import "@pancakeswap/pancake-swap-lib/contracts/token/BEP20/BEP20.sol";
+import "@alium-official/alium-swap-lib/contracts/token/BEP20/BEP20.sol";
 
 contract MockBEP20 is BEP20 {
     constructor(

@@ -1,4 +1,4 @@
-// File: @pancakeswap/pancake-swap-lib/contracts/GSN/Context.sol
+// File: @alium-official/alium-swap-lib/contracts/GSN/Context.sol
 
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -29,7 +29,7 @@ contract Context {
     }
 }
 
-// File: @pancakeswap/pancake-swap-lib/contracts/access/Ownable.sol
+// File: @alium-official/alium-swap-lib/contracts/access/Ownable.sol
 
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -107,7 +107,7 @@ contract Ownable is Context {
     }
 }
 
-// File: @pancakeswap/pancake-swap-lib/contracts/token/BEP20/IBEP20.sol
+// File: @alium-official/alium-swap-lib/contracts/token/BEP20/IBEP20.sol
 
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -208,7 +208,7 @@ interface IBEP20 {
     event Approval(address indexed owner, address indexed spender, uint256 value);
 }
 
-// File: @pancakeswap/pancake-swap-lib/contracts/math/SafeMath.sol
+// File: @alium-official/alium-swap-lib/contracts/math/SafeMath.sol
 
 // SPDX-License-Identifier: MIT
 
@@ -400,7 +400,7 @@ library SafeMath {
     }
 }
 
-// File: @pancakeswap/pancake-swap-lib/contracts/utils/Address.sol
+// File: @alium-official/alium-swap-lib/contracts/utils/Address.sol
 
 // SPDX-License-Identifier: MIT
 
@@ -564,7 +564,7 @@ library Address {
     }
 }
 
-// File: @pancakeswap/pancake-swap-lib/contracts/token/BEP20/BEP20.sol
+// File: @alium-official/alium-swap-lib/contracts/token/BEP20/BEP20.sol
 
 // SPDX-License-Identifier: MIT
 
@@ -874,7 +874,8 @@ contract BEP20 is Context, IBEP20, Ownable {
 
 // File: contracts/AliumToken.sol
 
-pragma solidity =0.6.12;
+pragma solidity =0.6.12;
+
 
 // AliumToken with Governance.
 contract AliumToken is BEP20('AliumToken', 'ALM') {
