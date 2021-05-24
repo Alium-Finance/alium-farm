@@ -2,6 +2,11 @@
 # yarn lockfile v1
 
 
+"@alium-official/alium-swap-lib@0.0.2":
+  version "0.0.2"
+  resolved "https://registry.yarnpkg.com/@alium-official/alium-swap-lib/-/alium-swap-lib-0.0.2.tgz#64844bf59e268cc11b16746c782937eadb566c23"
+  integrity sha512-dmeWqzmPndHGB7i5lE1C8AKvTpkvFw2bLLpXNPHZn5CbT07rCFV3sHBuP2IQXWIzP/HlDxtfqExKQeDTi729aA==
+
 "@ensdomains/ens@^0.4.4":
   version "0.4.5"
   resolved "https://registry.yarnpkg.com/@ensdomains/ens/-/ens-0.4.5.tgz#e0aebc005afdc066447c6e22feb4eda89a5edbfc"
@@ -579,6 +584,11 @@
     find-up "^4.1.0"
     fs-extra "^8.1.0"
 
+"@openzeppelin/contracts@3.4.0":
+  version "3.4.0"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-3.4.0.tgz#9a1669ad5f9fdfb6e273bb5a4fed10cb4cc35eb0"
+  integrity sha512-qh+EiHWzfY/9CORr+eRUkeEUP1WiFUcq3974bLHwyYzLBUtK6HPaMkIUHi74S1rDTZ0sNz42DwPc5A4IJvN3rg==
+
 "@openzeppelin/test-helpers@^0.5.6":
   version "0.5.10"
   resolved "https://registry.yarnpkg.com/@openzeppelin/test-helpers/-/test-helpers-0.5.10.tgz#0a6ab9fd0810085e8114f9f33aed4102e848f27f"
@@ -594,11 +604,6 @@
     semver "^5.6.0"
     web3 "^1.2.5"
     web3-utils "^1.2.5"
-
-"@pancakeswap/pancake-swap-lib@^0.0.1":
-  version "0.0.1"
-  resolved "https://registry.yarnpkg.com/@pancakeswap/pancake-swap-lib/-/pancake-swap-lib-0.0.1.tgz#8ed3bb89f7282e63e6dd1937914df6d6110cf76f"
-  integrity sha512-zSx5nvDM9HN9aziZXXoZIqmj3wKLkP9HHZZpr+1bxjmZrSfYecORrnl7YKy1nqLU4FW7F9wqMltmp1dFNIeseg==
 
 "@resolver-engine/core@^0.2.1":
   version "0.2.1"

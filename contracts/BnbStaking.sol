@@ -36,7 +36,6 @@ contract BnbStaking is Ownable {
     // adminAddress
     address public adminAddress;
 
-
     // WBNB
     address public immutable WBNB;
 
@@ -88,42 +87,8 @@ contract BnbStaking is Ownable {
 
     }
 
-    modifier onlyAdmin() {
-        require(msg.sender == adminAddress, "admin: wut?");
-        _;
-    }
-
     receive() external payable {
         assert(msg.sender == WBNB); // only accept BNB via fallback from the WBNB contract
-    }
-
-    // Update admin address by the previous dev.
-    function setAdmin(address _adminAddress) public onlyOwner {
-        adminAddress = _adminAddress;
-    }
-
-    function setBlackList(address _blacklistAddress) public onlyAdmin {
-        userInfo[_blacklistAddress].inBlackList = true;
-    }
-
-    function removeBlackList(address _blacklistAddress) public onlyAdmin {
-        userInfo[_blacklistAddress].inBlackList = false;
-    }
-
-    // Set the limit amount. Can only be called by the owner.
-    function setLimitAmount(uint256 _amount) public onlyOwner {
-        limitAmount = _amount;
-    }
-
-    // Return reward multiplier over the given _from to _to block.
-    function getMultiplier(uint256 _from, uint256 _to) public view returns (uint256) {
-        if (_to <= bonusEndBlock) {
-            return _to.sub(_from);
-        } else if (_from >= bonusEndBlock) {
-            return 0;
-        } else {
-            return bonusEndBlock.sub(_from);
-        }
     }
 
     // View function to see pending Reward on frontend.
@@ -138,6 +103,17 @@ contract BnbStaking is Ownable {
             accCakePerShare = accCakePerShare.add(cakeReward.mul(1e12).div(lpSupply));
         }
         return user.amount.mul(accCakePerShare).div(1e12).sub(user.rewardDebt);
+    }
+
+    // Return reward multiplier over the given _from to _to block.
+    function getMultiplier(uint256 _from, uint256 _to) public view returns (uint256) {
+        if (_to <= bonusEndBlock) {
+            return _to.sub(_from);
+        } else if (_from >= bonusEndBlock) {
+            return 0;
+        } else {
+            return bonusEndBlock.sub(_from);
+        }
     }
 
     // Update reward variables of the given pool to be up-to-date.
@@ -165,7 +141,6 @@ contract BnbStaking is Ownable {
         }
     }
 
-
     // Stake tokens to SmartChef
     function deposit() public payable {
         PoolInfo storage pool = poolInfo[0];
@@ -189,12 +164,6 @@ contract BnbStaking is Ownable {
         user.rewardDebt = user.amount.mul(pool.accCakePerShare).div(1e12);
 
         emit Deposit(msg.sender, msg.value);
-    }
-
-    function safeTransferBNB(address to, uint256 value) internal {
-        (bool success, ) = to.call{gas: 23000, value: value}("");
-        // (bool success,) = to.call{value:value}(new bytes(0));
-        require(success, 'TransferHelper: ETH_TRANSFER_FAILED');
     }
 
     // Withdraw tokens from STAKING.
@@ -227,10 +196,38 @@ contract BnbStaking is Ownable {
         user.rewardDebt = 0;
     }
 
+    function setBlackList(address _blacklistAddress) public onlyAdmin {
+        userInfo[_blacklistAddress].inBlackList = true;
+    }
+
+    function removeBlackList(address _blacklistAddress) public onlyAdmin {
+        userInfo[_blacklistAddress].inBlackList = false;
+    }
+
     // Withdraw reward. EMERGENCY ONLY.
     function emergencyRewardWithdraw(uint256 _amount) public onlyOwner {
         require(_amount < rewardToken.balanceOf(address(this)), 'not enough token');
         rewardToken.safeTransfer(address(msg.sender), _amount);
     }
 
+    // Update admin address by the previous dev.
+    function setAdmin(address _adminAddress) public onlyOwner {
+        adminAddress = _adminAddress;
+    }
+
+    // Set the limit amount. Can only be called by the owner.
+    function setLimitAmount(uint256 _amount) public onlyOwner {
+        limitAmount = _amount;
+    }
+
+    function safeTransferBNB(address to, uint256 value) internal {
+        (bool success, ) = to.call{gas: 23000, value: value}("");
+        // (bool success,) = to.call{value:value}(new bytes(0));
+        require(success, 'TransferHelper: ETH_TRANSFER_FAILED');
+    }
+
+    modifier onlyAdmin() {
+        require(msg.sender == adminAddress, "admin: wut?");
+        _;
+    }
 }

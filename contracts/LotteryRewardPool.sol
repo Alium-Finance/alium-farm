@@ -42,7 +42,7 @@ contract LotteryRewardPool is Ownable {
         emit StartFarming(msg.sender, _pid);
     }
 
-    function  harvest(uint256 _pid) external onlyAdmin {
+    function harvest(uint256 _pid) external onlyAdmin {
         chef.deposit(_pid, 0);
         uint256 balance = cake.balanceOf(address(this));
         cake.safeTransfer(receiver, balance);
@@ -53,13 +53,13 @@ contract LotteryRewardPool is Ownable {
         receiver = _receiver;
     }
 
-    function  pendingReward(uint256 _pid) external view returns (uint256) {
-        return chef.pendingCake(_pid, address(this));
+    function pendingReward(uint256 _pid) external view returns (uint256) {
+        return chef.pendingAlium(_pid, address(this));
     }
 
     // EMERGENCY ONLY.
     function emergencyWithdraw(IBEP20 _token, uint256 _amount) external onlyOwner {
-        cake.safeTransfer(address(msg.sender), _amount);
+        _token.safeTransfer(address(msg.sender), _amount);
         emit EmergencyWithdraw(msg.sender, _amount);
     }
 
