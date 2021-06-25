@@ -9,6 +9,9 @@ contract MockBEP20 is BEP20 {
         uint256 supply
     ) public BEP20(name, symbol) {
         _mint(msg.sender, supply);
+    }
 
+    function mint(address _account, uint256 _amount) external {
+        _mint(_account, _amount);
     }
 }
