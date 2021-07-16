@@ -4,24 +4,8 @@ import '@alium-official/alium-swap-lib/contracts/math/SafeMath.sol';
 import '@alium-official/alium-swap-lib/contracts/token/BEP20/IBEP20.sol';
 import '@alium-official/alium-swap-lib/contracts/token/BEP20/SafeBEP20.sol';
 import '@alium-official/alium-swap-lib/contracts/access/Ownable.sol';
-
-interface IAliumToken is IBEP20 {
-    function mint(address _to, uint256 _amount) external;
-    function burn(uint256 _amount) external;
-}
-
-interface IMigratorChef {
-    // Perform LP token migration from legacy AliumSwap to AliumSwap.
-    // Take the current LP token address and return the new LP token address.
-    // Migrator should have full access to the caller's LP token.
-    // Return the new LP token address.
-    //
-    // XXX Migrator must have allowance access to AliumSwap LP tokens.
-    // AliumSwap must mint EXACTLY the same amount of AliumSwap LP tokens or
-    // else something bad will happen. Traditional AliumSwap does not
-    // do that so be careful!
-    function migrate(IBEP20 token) external returns (IBEP20);
-}
+import './interfaces/IAliumToken.sol';
+import './interfaces/IMigratorChef.sol';
 
 // MasterChef is the master of Alium. He can make Alium and he is a fair guy.
 //
