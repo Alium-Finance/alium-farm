@@ -66,6 +66,7 @@ contract SidechainMasterChef is Ownable {
     PoolInfo[] public poolInfo;
     // Info of each user that stakes LP tokens.
     mapping (uint256 => mapping (address => UserInfo)) public userInfo;
+    mapping (address => bool) internal _addedLP;
     // Total allocation points. Must be the sum of all allocation points in all pools.
     uint256 public totalAllocPoint = 0;
     // The block number when ALM mining starts.
@@ -159,6 +160,7 @@ contract SidechainMasterChef is Ownable {
     function addPool(uint256 _allocPoint, uint256 _tokenLockShare, uint256 _depositFee, IBEP20 _lpToken, bool _withUpdate) external onlyOwner {
         require(_tokenLockShare <= 100, "Wrong set token lock shares");
         require(_depositFee <= 100_000, "Wrong set deposit fee");
+        require(!_addedLP[address(_lpToken)], "Pool with this LP token already exist");
 
         if (_withUpdate) {
             massUpdatePools();
@@ -175,6 +177,7 @@ contract SidechainMasterChef is Ownable {
             depositFee: _depositFee
         }));
         _updateStakingPool();
+        _addedLP[address(_lpToken)] = true;
     }
 
     // Update the given pool's ALM allocation point. Can only be called by the owner.
