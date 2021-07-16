@@ -253,18 +253,17 @@ contract SidechainMasterChef is Ownable {
 
         uint256 almReward = multiplier.mul(almPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
         if (almReward + almReward.div(10) + mintedTokens <= mintingLimit) {
-            alm.mint(devaddr, almReward.div(10));
-            alm.mint(address(this), almReward);
+            _safeAlmTransfer(devaddr, almReward.div(10)); // dev reward
             mintedTokens += almReward + almReward.div(10);
         } else {
             almReward = mintingLimit - mintedTokens;
-            alm.mint(address(this), almReward);
             mintedTokens += almReward;
             // @dev
             if (BONUS_MULTIPLIER != 0) {
                 BONUS_MULTIPLIER = 0;
             }
         }
+
         pool.accALMPerShare = pool.accALMPerShare.add(almReward.mul(1e12).div(lpSupply));
         pool.lastRewardBlock = block.number;
     }
