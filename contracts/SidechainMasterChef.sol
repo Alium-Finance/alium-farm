@@ -7,6 +7,10 @@ import '@alium-official/alium-swap-lib/contracts/access/Ownable.sol';
 import './interfaces/IAliumToken.sol';
 import './interfaces/IMigratorChef.sol';
 
+interface ITokenLock {
+    function lock(address to, uint256 amount) external;
+}
+
 // MasterChef is the master of Alium. He can make Alium and he is a fair guy.
 //
 // Note that it's ownable and the owner wields tremendous power. The ownership
@@ -41,12 +45,15 @@ contract SidechainMasterChef is Ownable {
         uint256 allocPoint;       // How many allocation points assigned to this pool. ALMs to distribute per block.
         uint256 lastRewardBlock;  // Last block number that ALMs distribution occurs.
         uint256 accALMPerShare; // Accumulated ALMs per share, times 1e12. See below.
+        uint256 tokenlockShare; // TokenLock share, should not be more then 100.
     }
 
     // The ALM TOKEN!
     IAliumToken public alm;
     // Dev address.
     address public devaddr;
+    // TokenLock contact
+    address public tokenlock;
     // ALM tokens created per block.
     uint256 public immutable almPerBlock;
     // Bonus muliplier for early alm makers.
@@ -73,6 +80,7 @@ contract SidechainMasterChef is Ownable {
     constructor(
         IAliumToken _alm,
         address _devaddr,
+        address _tokenlock,
         uint256 _almPerBlock,
         uint256 _startBlock,
         uint256 _farmingLimit
@@ -82,6 +90,7 @@ contract SidechainMasterChef is Ownable {
 
         alm = _alm;
         devaddr = _devaddr;
+        tokenlock = _tokenlock;
         almPerBlock = _almPerBlock;
         startBlock = _startBlock;
         mintingLimit = _farmingLimit;
@@ -91,10 +100,13 @@ contract SidechainMasterChef is Ownable {
             lpToken: _alm,
             allocPoint: 1000,
             lastRewardBlock: startBlock,
-            accALMPerShare: 0
+            accALMPerShare: 0,
+            tokenlockShare: 0
         }));
 
         totalAllocPoint = 1000;
+
+        IBEP20(alm).approve(tokenlock, type(uint256).max);
     }
 
     // Deposit LP tokens to MasterChef for ALM allocation.
@@ -142,7 +154,7 @@ contract SidechainMasterChef is Ownable {
 
     // Add a new lp to the pool. Can only be called by the owner.
     // XXX DO NOT add the same LP token more than once. Rewards will be messed up if you do.
-    function addPool(uint256 _allocPoint, IBEP20 _lpToken, bool _withUpdate) external onlyOwner {
+    function addPool(uint256 _allocPoint, uint256 _tokenLockShare, IBEP20 _lpToken, bool _withUpdate) external onlyOwner {
         if (_withUpdate) {
             massUpdatePools();
         }
@@ -153,19 +165,21 @@ contract SidechainMasterChef is Ownable {
             lpToken: _lpToken,
             allocPoint: _allocPoint,
             lastRewardBlock: lastRewardBlock,
-            accALMPerShare: 0
+            accALMPerShare: 0,
+            tokenlockShare: _tokenLockShare
         }));
         _updateStakingPool();
     }
 
     // Update the given pool's ALM allocation point. Can only be called by the owner.
-    function setPool(uint256 _pid, uint256 _allocPoint, bool _withUpdate) external onlyOwner {
+    function setPool(uint256 _pid, uint256 _allocPoint, uint256 _tokenLockShare, bool _withUpdate) external onlyOwner {
         if (_withUpdate) {
             massUpdatePools();
         }
 
         uint256 prevAllocPoint = poolInfo[_pid].allocPoint;
         poolInfo[_pid].allocPoint = _allocPoint;
+        poolInfo[_pid].tokenlockShare = _tokenLockShare;
         if (prevAllocPoint != _allocPoint) {
             totalAllocPoint = totalAllocPoint.sub(prevAllocPoint).add(_allocPoint);
             _updateStakingPool();
@@ -287,7 +301,14 @@ contract SidechainMasterChef is Ownable {
         if (user.amount > 0) {
             uint256 pending = user.amount.mul(pool.accALMPerShare).div(1e12).sub(user.rewardDebt);
             if (pending > 0) {
-                _safeAlmTransfer(msg.sender, pending);
+                uint256 toTokenLock;
+                if (pool.tokenlockShare > 0) {
+                    toTokenLock = pending.mul(pool.tokenlockShare).div(100);
+                    //_safeAlmTransfer(msg.sender, toTokenLock);
+                    ITokenLock(tokenlock).lock(msg.sender, toTokenLock);
+                }
+
+                _safeAlmTransfer(msg.sender, pending.sub(toTokenLock));
             }
         }
         if (_amount > 0) {
@@ -308,7 +329,14 @@ contract SidechainMasterChef is Ownable {
         updatePool(_pid);
         uint256 pending = user.amount.mul(pool.accALMPerShare).div(1e12).sub(user.rewardDebt);
         if (pending > 0) {
-            _safeAlmTransfer(msg.sender, pending);
+            uint256 toTokenLock;
+            if (pool.tokenlockShare > 0) {
+                toTokenLock = pending.mul(pool.tokenlockShare).div(100);
+                //_safeAlmTransfer(msg.sender, toTokenLock);
+                ITokenLock(tokenlock).lock(msg.sender, toTokenLock);
+            }
+
+            _safeAlmTransfer(msg.sender, pending.sub(toTokenLock));
         }
         if (_amount > 0) {
             user.amount = user.amount.sub(_amount);
