@@ -157,6 +157,9 @@ contract SidechainMasterChef is Ownable {
     // Add a new lp to the pool. Can only be called by the owner.
     // XXX DO NOT add the same LP token more than once. Rewards will be messed up if you do.
     function addPool(uint256 _allocPoint, uint256 _tokenLockShare, uint256 _depositFee, IBEP20 _lpToken, bool _withUpdate) external onlyOwner {
+        require(_tokenLockShare <= 100, "Wrong set token lock shares");
+        require(_depositFee <= 100_000, "Wrong set deposit fee");
+
         if (_withUpdate) {
             massUpdatePools();
         }
@@ -176,6 +179,10 @@ contract SidechainMasterChef is Ownable {
 
     // Update the given pool's ALM allocation point. Can only be called by the owner.
     function setPool(uint256 _pid, uint256 _allocPoint, uint256 _tokenLockShare, uint256 _depositFee, bool _withUpdate) external onlyOwner {
+        require(_pid < poolInfo.length, "pid not exist");
+        require(_tokenLockShare <= 100, "Wrong set token lock shares");
+        require(_depositFee <= 100_000, "Wrong set deposit fee");
+
         if (_withUpdate) {
             massUpdatePools();
         }
