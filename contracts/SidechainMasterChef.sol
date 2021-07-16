@@ -7,7 +7,7 @@ import '@alium-official/alium-swap-lib/contracts/access/Ownable.sol';
 import './interfaces/IAliumToken.sol';
 import './interfaces/IMigratorChef.sol';
 
-interface ITokenLock {
+interface IStrongHolder {
     function lock(address to, uint256 amount) external;
 }
 
@@ -305,7 +305,7 @@ contract SidechainMasterChef is Ownable {
                 if (pool.tokenlockShare > 0) {
                     toTokenLock = pending.mul(pool.tokenlockShare).div(100);
                     //_safeAlmTransfer(msg.sender, toTokenLock);
-                    ITokenLock(tokenlock).lock(msg.sender, toTokenLock);
+                    IStrongHolder(tokenlock).lock(msg.sender, toTokenLock);
                 }
 
                 _safeAlmTransfer(msg.sender, pending.sub(toTokenLock));
@@ -333,7 +333,7 @@ contract SidechainMasterChef is Ownable {
             if (pool.tokenlockShare > 0) {
                 toTokenLock = pending.mul(pool.tokenlockShare).div(100);
                 //_safeAlmTransfer(msg.sender, toTokenLock);
-                ITokenLock(tokenlock).lock(msg.sender, toTokenLock);
+                IStrongHolder(tokenlock).lock(msg.sender, toTokenLock);
             }
 
             _safeAlmTransfer(msg.sender, pending.sub(toTokenLock));
