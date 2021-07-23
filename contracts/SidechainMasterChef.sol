@@ -6,10 +6,7 @@ import '@alium-official/alium-swap-lib/contracts/token/BEP20/SafeBEP20.sol';
 import '@alium-official/alium-swap-lib/contracts/access/Ownable.sol';
 import './interfaces/IAliumToken.sol';
 import './interfaces/IMigratorChef.sol';
-
-interface IStrongHolder {
-    function lock(address to, uint256 amount) external;
-}
+import './interfaces/IStrongHolder.sol';
 
 // MasterChef is the master of Alium. He can make Alium and he is a fair guy.
 //
