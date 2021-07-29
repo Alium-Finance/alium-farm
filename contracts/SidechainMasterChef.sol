@@ -347,7 +347,7 @@ contract SidechainMasterChef is Ownable {
         if (pending > 0) {
             uint256 toTokenLock;
             if (pool.tokenlockShare > 0) {
-                toTokenLock = pending.mul(pool.tokenlockShare).div(100);
+                toTokenLock = pending.mul(pool.tokenlockShare).div(100_000);
                 //_safeAlmTransfer(msg.sender, toTokenLock);
                 IStrongHolder(tokenlock).lock(msg.sender, toTokenLock);
             }
