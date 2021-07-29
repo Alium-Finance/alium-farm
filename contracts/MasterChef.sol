@@ -6,6 +6,7 @@ import '@alium-official/alium-swap-lib/contracts/token/BEP20/SafeBEP20.sol';
 import '@alium-official/alium-swap-lib/contracts/access/Ownable.sol';
 import './interfaces/IAliumToken.sol';
 import './interfaces/IMigratorChef.sol';
+import './interfaces/IStrongHolder.sol';
 
 // MasterChef is the master of Alium. He can make Alium and he is a fair guy.
 //
@@ -41,12 +42,16 @@ contract MasterChef is Ownable {
         uint256 allocPoint;       // How many allocation points assigned to this pool. ALMs to distribute per block.
         uint256 lastRewardBlock;  // Last block number that ALMs distribution occurs.
         uint256 accALMPerShare; // Accumulated ALMs per share, times 1e12. See below.
+        uint256 tokenlockShare; // TokenLock share, should not be more then 100.
+        uint256 depositFee;     // Deposit fee. Decimals 100000.
     }
 
     // The ALM TOKEN!
     IAliumToken public alm;
     // Dev address.
     address public devaddr;
+    // TokenLock contact
+    address public tokenlock;
     // ALM tokens created per block.
     uint256 public immutable almPerBlock;
     // Bonus muliplier for early alm makers.
@@ -58,6 +63,7 @@ contract MasterChef is Ownable {
     PoolInfo[] public poolInfo;
     // Info of each user that stakes LP tokens.
     mapping (uint256 => mapping (address => UserInfo)) public userInfo;
+    mapping (address => bool) internal _addedLP;
     // Total allocation points. Must be the sum of all allocation points in all pools.
     uint256 public totalAllocPoint = 0;
     // The block number when ALM mining starts.
@@ -73,6 +79,7 @@ contract MasterChef is Ownable {
     constructor(
         IAliumToken _alm,
         address _devaddr,
+        address _tokenlock,
         uint256 _almPerBlock,
         uint256 _startBlock,
         uint256 _farmingLimit
@@ -82,6 +89,7 @@ contract MasterChef is Ownable {
 
         alm = _alm;
         devaddr = _devaddr;
+        tokenlock = _tokenlock;
         almPerBlock = _almPerBlock;
         startBlock = _startBlock;
         mintingLimit = _farmingLimit;
@@ -91,10 +99,14 @@ contract MasterChef is Ownable {
             lpToken: _alm,
             allocPoint: 1000,
             lastRewardBlock: startBlock,
-            accALMPerShare: 0
+            accALMPerShare: 0,
+            tokenlockShare: 0,
+            depositFee: 0
         }));
 
         totalAllocPoint = 1000;
+
+        IBEP20(alm).approve(tokenlock, type(uint256).max);
     }
 
     // Deposit LP tokens to MasterChef for ALM allocation.
@@ -142,7 +154,11 @@ contract MasterChef is Ownable {
 
     // Add a new lp to the pool. Can only be called by the owner.
     // XXX DO NOT add the same LP token more than once. Rewards will be messed up if you do.
-    function addPool(uint256 _allocPoint, IBEP20 _lpToken, bool _withUpdate) external onlyOwner {
+    function addPool(uint256 _allocPoint, uint256 _tokenLockShare, uint256 _depositFee, IBEP20 _lpToken, bool _withUpdate) external onlyOwner {
+        require(_tokenLockShare <= 100, "Wrong set token lock shares");
+        require(_depositFee <= 100_000, "Wrong set deposit fee");
+        require(!_addedLP[address(_lpToken)], "Pool with this LP token already exist");
+
         if (_withUpdate) {
             massUpdatePools();
         }
@@ -153,19 +169,28 @@ contract MasterChef is Ownable {
             lpToken: _lpToken,
             allocPoint: _allocPoint,
             lastRewardBlock: lastRewardBlock,
-            accALMPerShare: 0
+            accALMPerShare: 0,
+            tokenlockShare: _tokenLockShare,
+            depositFee: _depositFee
         }));
         _updateStakingPool();
+        _addedLP[address(_lpToken)] = true;
     }
 
     // Update the given pool's ALM allocation point. Can only be called by the owner.
-    function setPool(uint256 _pid, uint256 _allocPoint, bool _withUpdate) external onlyOwner {
+    function setPool(uint256 _pid, uint256 _allocPoint, uint256 _tokenLockShare, uint256 _depositFee, bool _withUpdate) external onlyOwner {
+        require(_pid < poolInfo.length, "pid not exist");
+        require(_tokenLockShare <= 100, "Wrong set token lock shares");
+        require(_depositFee <= 100_000, "Wrong set deposit fee");
+
         if (_withUpdate) {
             massUpdatePools();
         }
 
         uint256 prevAllocPoint = poolInfo[_pid].allocPoint;
         poolInfo[_pid].allocPoint = _allocPoint;
+        poolInfo[_pid].tokenlockShare = _tokenLockShare;
+        poolInfo[_pid].depositFee = _depositFee;
         if (prevAllocPoint != _allocPoint) {
             totalAllocPoint = totalAllocPoint.sub(prevAllocPoint).add(_allocPoint);
             _updateStakingPool();
@@ -288,10 +313,22 @@ contract MasterChef is Ownable {
         if (user.amount > 0) {
             uint256 pending = user.amount.mul(pool.accALMPerShare).div(1e12).sub(user.rewardDebt);
             if (pending > 0) {
-                _safeAlmTransfer(msg.sender, pending);
+                uint256 toTokenLock;
+                if (pool.tokenlockShare > 0) {
+                    toTokenLock = pending.mul(pool.tokenlockShare).div(100);
+                    //_safeAlmTransfer(msg.sender, toTokenLock);
+                    IStrongHolder(tokenlock).lock(msg.sender, toTokenLock);
+                }
+
+                _safeAlmTransfer(msg.sender, pending.sub(toTokenLock));
             }
         }
         if (_amount > 0) {
+            if (pool.depositFee > 0) {
+                uint toService = _amount.mul(pool.depositFee).div(100_000);
+                pool.lpToken.safeTransferFrom(address(msg.sender), address(this), toService);
+                _amount = _amount.sub(toService);
+            }
             pool.lpToken.safeTransferFrom(address(msg.sender), address(this), _amount);
             user.amount = user.amount.add(_amount);
         }
@@ -309,7 +346,14 @@ contract MasterChef is Ownable {
         updatePool(_pid);
         uint256 pending = user.amount.mul(pool.accALMPerShare).div(1e12).sub(user.rewardDebt);
         if (pending > 0) {
-            _safeAlmTransfer(msg.sender, pending);
+            uint256 toTokenLock;
+            if (pool.tokenlockShare > 0) {
+                toTokenLock = pending.mul(pool.tokenlockShare).div(100_000);
+                //_safeAlmTransfer(msg.sender, toTokenLock);
+                IStrongHolder(tokenlock).lock(msg.sender, toTokenLock);
+            }
+
+            _safeAlmTransfer(msg.sender, pending.sub(toTokenLock));
         }
         if (_amount > 0) {
             user.amount = user.amount.sub(_amount);
