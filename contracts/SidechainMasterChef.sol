@@ -51,7 +51,9 @@ contract SidechainMasterChef is Ownable {
     // Dev address.
     address public devaddr;
     // TokenLock contact
-    address public tokenlock;
+    address public shp;
+    // SHP status
+    bool public shpStatus;
     // ALM tokens created per block.
     uint256 public immutable almPerBlock;
     // Bonus muliplier for early alm makers.
@@ -79,7 +81,7 @@ contract SidechainMasterChef is Ownable {
     constructor(
         IAliumToken _alm,
         address _devaddr,
-        address _tokenlock,
+        address _shp,
         uint256 _almPerBlock,
         uint256 _startBlock,
         uint256 _farmingLimit
@@ -89,7 +91,7 @@ contract SidechainMasterChef is Ownable {
 
         alm = _alm;
         devaddr = _devaddr;
-        tokenlock = _tokenlock;
+        shp = _shp;
         almPerBlock = _almPerBlock;
         startBlock = _startBlock;
         mintingLimit = _farmingLimit;
@@ -106,7 +108,7 @@ contract SidechainMasterChef is Ownable {
 
         totalAllocPoint = 1000;
 
-        IBEP20(alm).approve(tokenlock, type(uint256).max);
+        IBEP20(alm).safeApprove(shp, type(uint256).max);
     }
 
     // Deposit LP tokens to MasterChef for ALM allocation.
@@ -150,6 +152,11 @@ contract SidechainMasterChef is Ownable {
     // Set the migrator contract. Can only be called by the owner.
     function setMigrator(IMigratorChef _migrator) external onlyOwner {
         migrator = _migrator;
+    }
+
+    // Set the migrator contract. Can only be called by the owner.
+    function setShpStatus(bool _enable) external onlyOwner {
+        shpStatus = _enable;
     }
 
     // Add a new lp to the pool. Can only be called by the owner.
@@ -316,7 +323,13 @@ contract SidechainMasterChef is Ownable {
                 if (pool.tokenlockShare > 0) {
                     toTokenLock = pending.mul(pool.tokenlockShare).div(100);
                     //_safeAlmTransfer(msg.sender, toTokenLock);
-                    IStrongHolder(tokenlock).lock(msg.sender, toTokenLock);
+                    if (shpStatus) {
+                        if (toTokenLock >= 100_000) {
+                            IStrongHolder(shp).lock(msg.sender, toTokenLock);
+                        } else {
+                            toTokenLock = 0;
+                        }
+                    }
                 }
 
                 _safeAlmTransfer(msg.sender, pending.sub(toTokenLock));
@@ -349,7 +362,13 @@ contract SidechainMasterChef is Ownable {
             if (pool.tokenlockShare > 0) {
                 toTokenLock = pending.mul(pool.tokenlockShare).div(100_000);
                 //_safeAlmTransfer(msg.sender, toTokenLock);
-                IStrongHolder(tokenlock).lock(msg.sender, toTokenLock);
+                if (shpStatus) {
+                    if (toTokenLock >= 100_000) {
+                        IStrongHolder(shp).lock(msg.sender, toTokenLock);
+                    } else {
+                        toTokenLock = 0;
+                    }
+                }
             }
 
             _safeAlmTransfer(msg.sender, pending.sub(toTokenLock));
