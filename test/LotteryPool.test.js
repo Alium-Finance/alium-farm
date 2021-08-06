@@ -7,7 +7,7 @@ const LotteryRewardPool = artifacts.require('LotteryRewardPool');
 
 contract('MasterChef', ([alice, bob, carol, dev, minter]) => {
   beforeEach(async () => {
-    this.cake = await AliumToken.new({ from: minter });
+    this.alm = await AliumToken.new({ from: minter });
     this.lp1 = await MockBEP20.new('LPToken', 'LP1', '1000000', {
       from: minter,
     });
@@ -21,14 +21,14 @@ contract('MasterChef', ([alice, bob, carol, dev, minter]) => {
       from: minter,
     });
     this.chef = await MasterChef.new(
-      this.cake.address,
+      this.alm.address,
       dev,
       '10',
       '10',
       MAX_UINT256,
       { from: minter }
     );
-    await this.cake.transferOwnership(this.chef.address, { from: minter });
+    await this.alm.transferOwnership(this.chef.address, { from: minter });
 
     await this.lp1.transfer(bob, '2000', { from: minter });
     await this.lp2.transfer(bob, '2000', { from: minter });
@@ -45,7 +45,7 @@ contract('MasterChef', ([alice, bob, carol, dev, minter]) => {
       await time.advanceBlockTo('70');
       this.lottery = await LotteryRewardPool.new(
           this.chef.address,
-          this.cake.address,
+          this.alm.address,
           dev,
           carol,
           { from: minter }
@@ -67,7 +67,7 @@ contract('MasterChef', ([alice, bob, carol, dev, minter]) => {
 
       assert.equal((await this.lottery.pendingReward('4')).toString(), '3');
       assert.equal(
-          (await this.cake.balanceOf(this.lottery.address)).toString(),
+          (await this.alm.balanceOf(this.lottery.address)).toString(),
           '0'
       );
 
@@ -75,16 +75,16 @@ contract('MasterChef', ([alice, bob, carol, dev, minter]) => {
       // console.log(await this.lottery.pendingReward(4).toString())
 
       assert.equal(
-          (await this.cake.balanceOf(this.lottery.address)).toString(),
+          (await this.alm.balanceOf(this.lottery.address)).toString(),
           '0'
       );
-      assert.equal((await this.cake.balanceOf(carol)).toString(), '5');
+      assert.equal((await this.alm.balanceOf(carol)).toString(), '5');
     });
 
     it('setReceiver', async () => {
       this.lottery = await LotteryRewardPool.new(
           this.chef.address,
-          this.cake.address,
+          this.alm.address,
           dev,
           carol,
           { from: minter }
@@ -95,11 +95,11 @@ contract('MasterChef', ([alice, bob, carol, dev, minter]) => {
         from: dev,
       });
       await this.lottery.harvest(1, { from: dev });
-      assert.equal((await this.cake.balanceOf(carol)).toString(), '7');
+      assert.equal((await this.alm.balanceOf(carol)).toString(), '7');
       await this.lottery.setReceiver(alice, { from: dev });
       assert.equal((await this.lottery.pendingReward('1')).toString(), '7');
       await this.lottery.harvest(1, { from: dev });
-      assert.equal((await this.cake.balanceOf(alice)).toString(), '15');
+      assert.equal((await this.alm.balanceOf(alice)).toString(), '15');
     });
 
     it('emergencyWithdraw', async () => {});
@@ -107,7 +107,7 @@ contract('MasterChef', ([alice, bob, carol, dev, minter]) => {
     it('update admin', async () => {
       this.lottery = await LotteryRewardPool.new(
           this.chef.address,
-          this.cake.address,
+          this.alm.address,
           dev,
           carol,
           { from: minter }

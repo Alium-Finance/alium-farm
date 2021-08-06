@@ -8,19 +8,19 @@ const { MAX_UINT256 } = constants;
 
 contract('MasterChef', ([alice, bob, dev, minter]) => {
     
-    let cake, chef, shp,
+    let alm, chef, shp,
         lp1, lp2, lp3, lp4, lp5, lp6, lp7, lp8, lp9
 
     const FARMING_LIMIT = MAX_UINT256;
     
     beforeEach(async () => {
-        cake = await AliumToken.new({ from: minter });
+        alm = await AliumToken.new({ from: minter });
         lp1 = await MockBEP20.new('LPToken', 'LP1', '1000000', { from: minter });
         lp2 = await MockBEP20.new('LPToken', 'LP2', '1000000', { from: minter });
         lp3 = await MockBEP20.new('LPToken', 'LP3', '1000000', { from: minter });
-        shp = await SHPMock.new(cake.address, { from: minter });
-        chef = await MasterChef.new(cake.address, dev, shp.address, '1000', '100', FARMING_LIMIT, { from: minter });
-        await cake.transferOwnership(chef.address, { from: minter });
+        shp = await SHPMock.new(alm.address, { from: minter });
+        chef = await MasterChef.new(alm.address, dev, shp.address, '1000', '100', FARMING_LIMIT, { from: minter });
+        await alm.transferOwnership(chef.address, { from: minter });
 
         await lp1.transfer(bob, '2000', { from: minter });
         await lp2.transfer(bob, '2000', { from: minter });
@@ -52,17 +52,17 @@ contract('MasterChef', ([alice, bob, dev, minter]) => {
 
             await time.advanceBlockTo('170');
             await lp1.approve(chef.address, MAX_UINT256, { from: alice });
-            assert.equal((await cake.balanceOf(alice)).toString(), '0');
+            assert.equal((await alm.balanceOf(alice)).toString(), '0');
             await chef.deposit(1, '20', { from: alice });
             await chef.withdraw(1, '20', { from: alice });
-            assert.equal((await cake.balanceOf(alice)).toString(), '263');
+            assert.equal((await alm.balanceOf(alice)).toString(), '263');
 
-            await cake.approve(chef.address, MAX_UINT256, { from: alice });
+            await alm.approve(chef.address, MAX_UINT256, { from: alice });
             await chef.stake('20', { from: alice });
             await chef.stake('0', { from: alice });
             await chef.stake('0', { from: alice });
             await chef.stake('0', { from: alice });
-            assert.equal((await cake.balanceOf(alice)).toString(), '993');
+            assert.equal((await alm.balanceOf(alice)).toString(), '993');
             // assert.equal((await chef.getPoolPoint(0, { from: minter })).toString(), '1900');
         })
 
@@ -79,15 +79,15 @@ contract('MasterChef', ([alice, bob, dev, minter]) => {
             assert.equal((await lp1.balanceOf(alice)).toString(), '1940');
             await chef.withdraw(1, '10', { from: alice });
             assert.equal((await lp1.balanceOf(alice)).toString(), '1950');
-            assert.equal((await cake.balanceOf(alice)).toString(), '999');
-            assert.equal((await cake.balanceOf(dev)).toString(), '100');
+            assert.equal((await alm.balanceOf(alice)).toString(), '999');
+            assert.equal((await alm.balanceOf(dev)).toString(), '100');
 
             await lp1.approve(chef.address, MAX_UINT256, { from: bob });
             assert.equal((await lp1.balanceOf(bob)).toString(), '2000');
             await chef.deposit(1, '50', { from: bob });
             assert.equal((await lp1.balanceOf(bob)).toString(), '1950');
             await chef.deposit(1, '0', { from: bob });
-            assert.equal((await cake.balanceOf(bob)).toString(), '125');
+            assert.equal((await alm.balanceOf(bob)).toString(), '125');
             await chef.emergencyWithdraw(1, { from: bob });
             assert.equal((await lp1.balanceOf(bob)).toString(), '2000');
         })
@@ -103,13 +103,13 @@ contract('MasterChef', ([alice, bob, dev, minter]) => {
 
             // clear alisa balance
 
-            let balanceBefore = (await cake.balanceOf(alice)).toString()
+            let balanceBefore = (await alm.balanceOf(alice)).toString()
 
-            await cake.approve(chef.address, MAX_UINT256, { from: alice });
+            await alm.approve(chef.address, MAX_UINT256, { from: alice });
             await chef.stake('1', { from: alice });
             await chef.unstake('1', { from: alice });
 
-            let balanceAfter = (await cake.balanceOf(alice)).toString()
+            let balanceAfter = (await alm.balanceOf(alice)).toString()
 
             assert.equal(balanceAfter, 2 * balanceBefore);
         });
@@ -126,8 +126,8 @@ contract('MasterChef', ([alice, bob, dev, minter]) => {
             await chef.deposit(1, '0', { from: alice });
             await chef.deposit(1, '0', { from: bob });
 
-            await cake.approve(chef.address, MAX_UINT256, { from: alice });
-            await cake.approve(chef.address, MAX_UINT256, { from: bob });
+            await alm.approve(chef.address, MAX_UINT256, { from: alice });
+            await alm.approve(chef.address, MAX_UINT256, { from: bob });
             await chef.stake('50', { from: alice });
             await chef.stake('100', { from: bob });
 
@@ -138,8 +138,8 @@ contract('MasterChef', ([alice, bob, dev, minter]) => {
             await chef.deposit(1, '0', { from: alice });
             await chef.deposit(1, '0', { from: bob });
 
-            assert.equal((await cake.balanceOf(alice)).toString(), '455');
-            assert.equal((await cake.balanceOf(bob)).toString(), '150');
+            assert.equal((await alm.balanceOf(alice)).toString(), '455');
+            assert.equal((await alm.balanceOf(bob)).toString(), '150');
 
             await time.advanceBlockTo('265');
 
@@ -148,8 +148,8 @@ contract('MasterChef', ([alice, bob, dev, minter]) => {
             await chef.deposit(1, '0', { from: alice });
             await chef.deposit(1, '0', { from: bob });
 
-            assert.equal((await cake.balanceOf(alice)).toString(), '455');
-            assert.equal((await cake.balanceOf(bob)).toString(), '150');
+            assert.equal((await alm.balanceOf(alice)).toString(), '455');
+            assert.equal((await alm.balanceOf(bob)).toString(), '150');
 
             await chef.unstake('50', { from: alice });
             await chef.unstake('100', { from: bob });

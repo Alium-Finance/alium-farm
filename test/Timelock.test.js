@@ -14,23 +14,23 @@ function encodeParameters(types, values) {
 
 contract('Timelock', ([alice, bob, carol, dev, minter]) => {
     beforeEach(async () => {
-        this.cake = await AliumToken.new({ from: alice });
+        this.alm = await AliumToken.new({ from: alice });
         this.timelock = await Timelock.new(bob, '28800', { from: alice }); //8hours
     });
 
     it('should not allow non-owner to do operation', async () => {
-        await this.cake.transferOwnership(this.timelock.address, { from: alice });
+        await this.alm.transferOwnership(this.timelock.address, { from: alice });
         await expectRevert(
-            this.cake.transferOwnership(carol, { from: alice }),
+            this.alm.transferOwnership(carol, { from: alice }),
             'Ownable: caller is not the owner',
         );
         await expectRevert(
-            this.cake.transferOwnership(carol, { from: bob }),
+            this.alm.transferOwnership(carol, { from: bob }),
             'Ownable: caller is not the owner',
         );
         await expectRevert(
             this.timelock.queueTransaction(
-                this.cake.address, '0', 'transferOwnership(address)',
+                this.alm.address, '0', 'transferOwnership(address)',
                 encodeParameters(['address'], [carol]),
                 (await time.latest()).add(time.duration.hours(6)),
                 { from: alice },
@@ -40,33 +40,33 @@ contract('Timelock', ([alice, bob, carol, dev, minter]) => {
     });
 
     it('should do the timelock thing', async () => {
-        await this.cake.transferOwnership(this.timelock.address, { from: alice });
+        await this.alm.transferOwnership(this.timelock.address, { from: alice });
         const eta = (await time.latest()).add(time.duration.hours(9));
         await this.timelock.queueTransaction(
-            this.cake.address, '0', 'transferOwnership(address)',
+            this.alm.address, '0', 'transferOwnership(address)',
             encodeParameters(['address'], [carol]), eta, { from: bob },
         );
         await time.increase(time.duration.hours(1));
         await expectRevert(
             this.timelock.executeTransaction(
-                this.cake.address, '0', 'transferOwnership(address)',
+                this.alm.address, '0', 'transferOwnership(address)',
                 encodeParameters(['address'], [carol]), eta, { from: bob },
             ),
             "Timelock::executeTransaction: Transaction hasn't surpassed time lock.",
         );
         await time.increase(time.duration.hours(8));
         await this.timelock.executeTransaction(
-            this.cake.address, '0', 'transferOwnership(address)',
+            this.alm.address, '0', 'transferOwnership(address)',
             encodeParameters(['address'], [carol]), eta, { from: bob },
         );
-        assert.equal((await this.cake.owner()).valueOf(), carol);
+        assert.equal((await this.alm.owner()).valueOf(), carol);
     });
 
     it('should also work with MasterChef', async () => {
         this.lp1 = await MockBEP20.new('LPToken', 'LP', '10000000000', { from: minter });
         this.lp2 = await MockBEP20.new('LPToken', 'LP', '10000000000', { from: minter });
-        this.chef = await MasterChef.new(this.cake.address, dev, '1000', '0', MAX_UINT256, { from: alice });
-        await this.cake.transferOwnership(this.chef.address, { from: alice });
+        this.chef = await MasterChef.new(this.alm.address, dev, '1000', '0', MAX_UINT256, { from: alice });
+        await this.alm.transferOwnership(this.chef.address, { from: alice });
         await this.chef.addPool('100', this.lp1.address, true, { from: alice });
         await this.chef.transferOwnership(this.timelock.address, { from: alice });
         await expectRevert(
