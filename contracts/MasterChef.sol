@@ -50,8 +50,8 @@ contract MasterChef is Ownable {
     IAliumToken public alm;
     // Dev address.
     address public devaddr;
-    // TokenLock contact
-    address public tokenlock;
+    // Strong Holders Pool contact
+    address public shp;
     // ALM tokens created per block.
     uint256 public immutable almPerBlock;
     // Bonus muliplier for early alm makers.
@@ -79,7 +79,7 @@ contract MasterChef is Ownable {
     constructor(
         IAliumToken _alm,
         address _devaddr,
-        address _tokenlock,
+        address _shp,
         uint256 _almPerBlock,
         uint256 _startBlock,
         uint256 _farmingLimit
@@ -89,7 +89,7 @@ contract MasterChef is Ownable {
 
         alm = _alm;
         devaddr = _devaddr;
-        tokenlock = _tokenlock;
+        shp = _shp;
         almPerBlock = _almPerBlock;
         startBlock = _startBlock;
         mintingLimit = _farmingLimit;
@@ -106,7 +106,7 @@ contract MasterChef is Ownable {
 
         totalAllocPoint = 1000;
 
-        IBEP20(alm).approve(tokenlock, type(uint256).max);
+        IBEP20(alm).safeApprove(shp, type(uint256).max);
     }
 
     // Deposit LP tokens to MasterChef for ALM allocation.
@@ -317,8 +317,13 @@ contract MasterChef is Ownable {
                 if (pool.tokenlockShare > 0) {
                     toTokenLock = pending.mul(pool.tokenlockShare).div(100);
                     //_safeAlmTransfer(msg.sender, toTokenLock);
-                    IStrongHolder(tokenlock).lock(msg.sender, toTokenLock);
-                }
+                    // participate if reward 100K+ ALM wei
+                    if (toTokenLock >= 100_000) {
+                        IStrongHolder(shp).lock(msg.sender, toTokenLock);
+                    } else {
+                        toTokenLock = 0;
+                    }
+                } else {}
 
                 _safeAlmTransfer(msg.sender, pending.sub(toTokenLock));
             }
@@ -350,7 +355,12 @@ contract MasterChef is Ownable {
             if (pool.tokenlockShare > 0) {
                 toTokenLock = pending.mul(pool.tokenlockShare).div(100_000);
                 //_safeAlmTransfer(msg.sender, toTokenLock);
-                IStrongHolder(tokenlock).lock(msg.sender, toTokenLock);
+                // participate if reward 100K+ ALM wei
+                if (toTokenLock >= 100_000) {
+                    IStrongHolder(shp).lock(msg.sender, toTokenLock);
+                } else {
+                    toTokenLock = 0;
+                }
             }
 
             _safeAlmTransfer(msg.sender, pending.sub(toTokenLock));
