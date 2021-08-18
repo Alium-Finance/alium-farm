@@ -1,4 +1,5 @@
 pragma solidity 0.6.12;
+pragma experimental ABIEncoderV2;
 
 import '@alium-official/alium-swap-lib/contracts/math/SafeMath.sol';
 import '@alium-official/alium-swap-lib/contracts/token/BEP20/IBEP20.sol';
@@ -46,6 +47,19 @@ contract MasterChef is Ownable {
         uint256 depositFee;     // Deposit fee. Decimals 100000.
     }
 
+    // Block reward initial data.
+    struct BlockRewardConstructor {
+        uint amount;  // Reward per block.
+        uint blocks;  // How many blocks will be with this {BlockReward.reward}.
+    }
+
+    // Block reward data.
+    struct BlockReward {
+        uint reward;  // Reward per block.
+        uint start;  // How many blocks will be with this {BlockReward.reward}.
+        uint end;  // How many blocks will be with this {BlockReward.reward}.
+    }
+
     // The ALM TOKEN!
     IAliumToken public alm;
     // Dev address.
@@ -54,8 +68,6 @@ contract MasterChef is Ownable {
     address public shp;
     // SHP status
     bool public shpStatus;
-    // ALM tokens created per block.
-    uint256 public immutable almPerBlock;
     // Bonus muliplier for early alm makers.
     uint256 public BONUS_MULTIPLIER = 1;
     // The migrator contract. It has a lot of power. Can only be set through governance (owner).
@@ -71,6 +83,8 @@ contract MasterChef is Ownable {
     // The block number when ALM mining starts.
     uint256 public startBlock;
 
+    BlockReward[] internal _blockRewards;
+
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
@@ -79,17 +93,28 @@ contract MasterChef is Ownable {
         IAliumToken _alm,
         address _devaddr,
         address _shp,
-        uint256 _almPerBlock,
-        uint256 _startBlock
+        uint256 _startBlock,
+        BlockRewardConstructor[] memory _rewards
     ) public {
         require(_devaddr != address(0), "MasterChef: set wrong dev");
-        require(_almPerBlock != 0, "MasterChef: set wrong reward");
 
         alm = _alm;
         devaddr = _devaddr;
         shp = _shp;
-        almPerBlock = _almPerBlock;
         startBlock = _startBlock;
+
+        BlockRewardConstructor memory _reward;
+        uint i = 0;
+        uint l = _rewards.length;
+        while (i < l) {
+            _reward = _rewards[i];
+            _blockRewards.push(BlockReward({
+                reward: _reward.amount,
+                start: (i == 0) ? startBlock : _blockRewards[i-1].end,
+                end: (i == 0) ? startBlock + _reward.blocks : _blockRewards[i-1].end + _reward.blocks
+            }));
+            i++;
+        }
 
         // staking pool
         poolInfo.push(PoolInfo({
@@ -233,10 +258,22 @@ contract MasterChef is Ownable {
         uint256 lpSupply = pool.lpToken.balanceOf(address(this));
         if (block.number > pool.lastRewardBlock && lpSupply != 0) {
             uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
-            uint256 almReward = multiplier.mul(almPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
+            uint256 almReward = multiplier.mul(blockReward()).mul(pool.allocPoint).div(totalAllocPoint);
             accALMPerShare = accALMPerShare.add(almReward.mul(1e12).div(lpSupply));
         }
         return user.amount.mul(accALMPerShare).div(1e12).sub(user.rewardDebt);
+    }
+
+    function blockReward() public view returns (uint256 reward) {
+        uint l = _blockRewards.length;
+        for (uint i = 0; i < l; i++) {
+            if (
+                block.timestamp >= _blockRewards[i].start &&
+                block.timestamp < _blockRewards[i].end
+            ) {
+                reward = _blockRewards[i].reward;
+            }
+        }
     }
 
     // Update reward variables for all pools. Be careful of gas spending!
@@ -262,7 +299,7 @@ contract MasterChef is Ownable {
 
         uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
 
-        uint256 almReward = multiplier.mul(almPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
+        uint256 almReward = multiplier.mul(blockReward()).mul(pool.allocPoint).div(totalAllocPoint);
         alm.mint(devaddr, almReward.div(10));
         alm.mint(address(this), almReward);
         pool.accALMPerShare = pool.accALMPerShare.add(almReward.mul(1e12).div(lpSupply));
