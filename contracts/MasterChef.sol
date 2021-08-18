@@ -71,9 +71,6 @@ contract MasterChef is Ownable {
     // The block number when ALM mining starts.
     uint256 public startBlock;
 
-    uint256 public mintedTokens;
-    uint256 public mintingLimit;
-
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
@@ -83,8 +80,7 @@ contract MasterChef is Ownable {
         address _devaddr,
         address _shp,
         uint256 _almPerBlock,
-        uint256 _startBlock,
-        uint256 _farmingLimit
+        uint256 _startBlock
     ) public {
         require(_devaddr != address(0), "MasterChef: set wrong dev");
         require(_almPerBlock != 0, "MasterChef: set wrong reward");
@@ -94,7 +90,6 @@ contract MasterChef is Ownable {
         shp = _shp;
         almPerBlock = _almPerBlock;
         startBlock = _startBlock;
-        mintingLimit = _farmingLimit;
 
         // staking pool
         poolInfo.push(PoolInfo({
@@ -268,19 +263,8 @@ contract MasterChef is Ownable {
         uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
 
         uint256 almReward = multiplier.mul(almPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
-        if (almReward + almReward.div(10) + mintedTokens <= mintingLimit) {
-            alm.mint(devaddr, almReward.div(10));
-            alm.mint(address(this), almReward);
-            mintedTokens += almReward + almReward.div(10);
-        } else {
-            almReward = mintingLimit - mintedTokens;
-            alm.mint(address(this), almReward);
-            mintedTokens += almReward;
-            // @dev
-            if (BONUS_MULTIPLIER != 0) {
-                BONUS_MULTIPLIER = 0;
-            }
-        }
+        alm.mint(devaddr, almReward.div(10));
+        alm.mint(address(this), almReward);
         pool.accALMPerShare = pool.accALMPerShare.add(almReward.mul(1e12).div(lpSupply));
         pool.lastRewardBlock = block.number;
     }
