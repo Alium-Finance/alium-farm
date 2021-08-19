@@ -8,6 +8,7 @@ import '@alium-official/alium-swap-lib/contracts/access/Ownable.sol';
 import './interfaces/IAliumToken.sol';
 import './interfaces/IMigratorChef.sol';
 import './interfaces/IStrongHolder.sol';
+import './interfaces/IOwnable.sol';
 
 // MasterChef is the master of Alium. He can make Alium and he is a fair guy.
 //
@@ -413,5 +414,12 @@ contract MasterChef is Ownable {
 
         user.rewardDebt = user.amount.mul(pool.accALMPerShare).div(1e12);
         emit Withdraw(msg.sender, _pid, _amount);
+    }
+
+    function transferAliumOwnership() external onlyOwner {
+        // 60_000_000 blocks ~ 6 months
+        require(startBlock + 60_000_000 < block.number, "ALM ownership locked");
+
+        IOwnable(address(alm)).transferOwnership(owner());
     }
 }
