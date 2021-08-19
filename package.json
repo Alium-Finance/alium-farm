@@ -4,17 +4,15 @@
   "main": "index.js",
   "scripts": {
     "migrate": "truffle migrate --network bscTestnet --reset",
-    "compile": "truffle compile --network bscTestnet",
+    "build": "truffle compile --network bscTestnet",
     "test": "npx builder test",
     "coverage": "npx builder coverage",
-    "dist": "truffle-flattener ./contracts/AliumToken.sol > ./flat/AliumToken.Full.sol"
+    "dist": "truffle-flattener ./contracts/AliumToken.sol > ./flat/AliumToken.Full.sol",
+    "dist:bep20mock": "truffle-flattener ./contracts/libs/MockBEP20.sol > ./flat/MockBEP20.Full.sol"
   },
   "dependencies": {
     "@alium-official/alium-swap-lib": "0.0.2",
-    "@openzeppelin/contracts": "3.4.0",
-    "@openzeppelin/test-helpers": "^0.5.6",
-    "truffle": "^5.1.58",
-    "truffle-flattener": "^1.4.4"
+    "@openzeppelin/contracts": "3.4.0"
   },
   "devDependencies": {
     "@nomiclabs/buidler": "^1.4.7",
@@ -22,10 +20,14 @@
     "@nomiclabs/buidler-truffle5": "^1.3.4",
     "@nomiclabs/buidler-waffle": "^2.0.0",
     "@nomiclabs/buidler-web3": "^1.3.4",
+    "@openzeppelin/test-helpers": "^0.5.6",
     "chai": "^4.2.0",
     "ethereum-waffle": "^3.0.0",
     "ethers": "^5.0.14",
+    "ganache-time-traveler": "^1.0.16",
     "solidity-coverage": "^0.7.13",
+    "truffle": "^5.1.58",
+    "truffle-flattener": "^1.4.4",
     "truffle-hdwallet-provider": "^1.0.17",
     "truffle-plugin-verify": "^0.4.0",
     "web3": "^1.3.0"
