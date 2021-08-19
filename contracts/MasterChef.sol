@@ -55,9 +55,9 @@ contract MasterChef is Ownable {
 
     // Block reward data.
     struct BlockReward {
-        uint reward;  // Reward per block.
-        uint start;  // How many blocks will be with this {BlockReward.reward}.
-        uint end;  // How many blocks will be with this {BlockReward.reward}.
+        uint reward;    // Reward per block.
+        uint start;     // Block start number
+        uint end;       // Block end number
     }
 
     // The ALM TOKEN!
@@ -181,7 +181,16 @@ contract MasterChef is Ownable {
 
     // Add a new lp to the pool. Can only be called by the owner.
     // XXX DO NOT add the same LP token more than once. Rewards will be messed up if you do.
-    function addPool(uint256 _allocPoint, uint256 _tokenLockShare, uint256 _depositFee, IBEP20 _lpToken, bool _withUpdate) external onlyOwner {
+    function addPool(
+        uint256 _allocPoint,
+        uint256 _tokenLockShare,
+        uint256 _depositFee,
+        IBEP20 _lpToken,
+        bool _withUpdate
+    )
+        external
+        onlyOwner
+    {
         require(_tokenLockShare <= 100, "Wrong set token lock shares");
         require(_depositFee <= 100_000, "Wrong set deposit fee");
         require(!_addedLP[address(_lpToken)], "Pool with this LP token already exist");
@@ -268,8 +277,8 @@ contract MasterChef is Ownable {
         uint l = _blockRewards.length;
         for (uint i = 0; i < l; i++) {
             if (
-                block.timestamp >= _blockRewards[i].start &&
-                block.timestamp < _blockRewards[i].end
+                block.number >= _blockRewards[i].start &&
+                block.number < _blockRewards[i].end
             ) {
                 reward = _blockRewards[i].reward;
             }
