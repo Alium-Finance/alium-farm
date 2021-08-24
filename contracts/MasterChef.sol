@@ -1,14 +1,14 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-import '@alium-official/alium-swap-lib/contracts/math/SafeMath.sol';
-import '@alium-official/alium-swap-lib/contracts/token/BEP20/IBEP20.sol';
-import '@alium-official/alium-swap-lib/contracts/token/BEP20/SafeBEP20.sol';
-import '@alium-official/alium-swap-lib/contracts/access/Ownable.sol';
-import './interfaces/IAliumToken.sol';
-import './interfaces/IMigratorChef.sol';
-import './interfaces/IStrongHolder.sol';
-import './interfaces/IOwnable.sol';
+import "@alium-official/alium-swap-lib/contracts/math/SafeMath.sol";
+import "@alium-official/alium-swap-lib/contracts/token/BEP20/IBEP20.sol";
+import "@alium-official/alium-swap-lib/contracts/token/BEP20/SafeBEP20.sol";
+import "@alium-official/alium-swap-lib/contracts/access/Ownable.sol";
+import "./interfaces/IAliumToken.sol";
+import "./interfaces/IMigratorChef.sol";
+import "./interfaces/IStrongHolder.sol";
+import "./interfaces/IOwnable.sol";
 
 // MasterChef is the master of Alium. He can make Alium and he is a fair guy.
 //

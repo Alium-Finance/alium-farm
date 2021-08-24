@@ -1,10 +1,10 @@
 pragma solidity 0.6.12;
 
-import '@alium-official/alium-swap-lib/contracts/token/BEP20/IBEP20.sol';
-import '@alium-official/alium-swap-lib/contracts/token/BEP20/SafeBEP20.sol';
-import '@alium-official/alium-swap-lib/contracts/access/Ownable.sol';
+import "@alium-official/alium-swap-lib/contracts/token/BEP20/IBEP20.sol";
+import "@alium-official/alium-swap-lib/contracts/token/BEP20/SafeBEP20.sol";
+import "@alium-official/alium-swap-lib/contracts/access/Ownable.sol";
 
-import './MasterChef.sol';
+import "./MasterChef.sol";
 
 contract LotteryRewardPool is Ownable {
     using SafeBEP20 for IBEP20;

@@ -3,7 +3,7 @@ pragma solidity =0.6.12;
 import "@alium-official/alium-swap-lib/contracts/token/BEP20/BEP20.sol";
 
 // AliumToken with Governance.
-contract AliumToken is BEP20('AliumToken', 'ALM') {
+contract AliumToken is BEP20("AliumToken", "ALM") {
     // Copied and modified from YAM code:
     // https://github.com/yam-finance/yam-protocol/blob/master/contracts/token/YAMGovernanceStorage.sol
     // https://github.com/yam-finance/yam-protocol/blob/master/contracts/token/YAMGovernance.sol

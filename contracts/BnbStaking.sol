@@ -1,9 +1,9 @@
 pragma solidity 0.6.12;
 
-import '@alium-official/alium-swap-lib/contracts/math/SafeMath.sol';
-import '@alium-official/alium-swap-lib/contracts/token/BEP20/IBEP20.sol';
-import '@alium-official/alium-swap-lib/contracts/token/BEP20/SafeBEP20.sol';
-import '@alium-official/alium-swap-lib/contracts/access/Ownable.sol';
+import "@alium-official/alium-swap-lib/contracts/math/SafeMath.sol";
+import "@alium-official/alium-swap-lib/contracts/token/BEP20/IBEP20.sol";
+import "@alium-official/alium-swap-lib/contracts/token/BEP20/SafeBEP20.sol";
+import "@alium-official/alium-swap-lib/contracts/access/Ownable.sol";
 
 interface IWBNB {
     function deposit() external payable;
@@ -146,8 +146,8 @@ contract BnbStaking is Ownable {
         PoolInfo storage pool = poolInfo[0];
         UserInfo storage user = userInfo[msg.sender];
 
-        require (user.amount.add(msg.value) <= limitAmount, 'exceed the top');
-        require (!user.inBlackList, 'in black list');
+        require (user.amount.add(msg.value) <= limitAmount, "exceed the top");
+        require (!user.inBlackList, "in black list");
 
         updatePool(0);
         if (user.amount > 0) {
@@ -206,7 +206,7 @@ contract BnbStaking is Ownable {
 
     // Withdraw reward. EMERGENCY ONLY.
     function emergencyRewardWithdraw(uint256 _amount) public onlyOwner {
-        require(_amount < rewardToken.balanceOf(address(this)), 'not enough token');
+        require(_amount < rewardToken.balanceOf(address(this)), "not enough token");
         rewardToken.safeTransfer(address(msg.sender), _amount);
     }
 
@@ -223,7 +223,7 @@ contract BnbStaking is Ownable {
     function safeTransferBNB(address to, uint256 value) internal {
         (bool success, ) = to.call{gas: 23000, value: value}("");
         // (bool success,) = to.call{value:value}(new bytes(0));
-        require(success, 'TransferHelper: ETH_TRANSFER_FAILED');
+        require(success, "TransferHelper: ETH_TRANSFER_FAILED");
     }
 
     modifier onlyAdmin() {
