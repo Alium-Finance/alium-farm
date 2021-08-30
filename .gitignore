@@ -8,3 +8,5 @@ cache
 artifacts
 coverage
 coverage.json
+
+.env-bsc-testnet-token

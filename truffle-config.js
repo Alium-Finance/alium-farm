@@ -17,11 +17,10 @@
  * phrase from a file you've .gitignored so it doesn't accidentally become public.
  *
  */
-
-// const HDWalletProvider = require('@truffle/hdwallet-provider');
+const HDWalletProvider = require('@truffle/hdwallet-provider');
 //
-// const fs = require('fs');
-// const mnemonic = fs.readFileSync(".secret").toString().trim();
+const fs = require('fs');
+const bscTestnet_PK = fs.readFileSync(".env-bsc-testnet-token").toString().trim();
 
 module.exports = {
   /**
@@ -71,6 +70,12 @@ module.exports = {
     // network_id: 2111,   // This network is yours, in the cloud.
     // production: true    // Treats this network as if it was a public net. (default: false)
     // }
+
+    bscTestnet: {
+      provider: () => new HDWalletProvider(bscTestnet_PK, `https://data-seed-prebsc-2-s1.binance.org:8545/`),
+      network_id: 97,   // This network is yours, in the cloud.
+      production: true    // Treats this network as if it was a public net. (default: false)
+    }
   },
 
   // Set default mocha options here, use special reporters etc.
