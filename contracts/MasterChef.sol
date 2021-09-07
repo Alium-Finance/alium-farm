@@ -6,7 +6,6 @@ import "@alium-official/alium-swap-lib/contracts/token/BEP20/IBEP20.sol";
 import "@alium-official/alium-swap-lib/contracts/token/BEP20/SafeBEP20.sol";
 import "@alium-official/alium-swap-lib/contracts/access/Ownable.sol";
 import "./interfaces/IAliumToken.sol";
-import "./interfaces/IMigratorChef.sol";
 import "./interfaces/IStrongHolder.sol";
 import "./interfaces/IOwnable.sol";
 
@@ -71,8 +70,6 @@ contract MasterChef is Ownable {
     bool public shpStatus;
     // Bonus muliplier for early alm makers.
     uint256 public BONUS_MULTIPLIER = 1;
-    // The migrator contract. It has a lot of power. Can only be set through governance (owner).
-    IMigratorChef public migrator;
 
     // Info of each pool.
     PoolInfo[] public poolInfo;
@@ -170,12 +167,7 @@ contract MasterChef is Ownable {
         BONUS_MULTIPLIER = multiplierNumber;
     }
 
-    // Set the migrator contract. Can only be called by the owner.
-    function setMigrator(IMigratorChef _migrator) external onlyOwner {
-        migrator = _migrator;
-    }
-
-    // Set the migrator contract. Can only be called by the owner.
+    // Set the shp contract. Can only be called by the owner.
     function setShpStatus(bool _enable) external onlyOwner {
         shpStatus = _enable;
     }
@@ -239,21 +231,6 @@ contract MasterChef is Ownable {
         require(msg.sender == devaddr, "MasterChef: dev wut?");
 
         devaddr = _devaddr;
-    }
-
-    // Migrate lp token to another lp contract. Can be called by anyone. We trust that migrator contract is good.
-    function migrate(uint256 _pid) external {
-        require(address(migrator) != address(0), "migrate: no migrator");
-
-        PoolInfo storage pool = poolInfo[_pid];
-        IBEP20 lpToken = pool.lpToken;
-        uint256 bal = lpToken.balanceOf(address(this));
-        lpToken.safeApprove(address(migrator), bal);
-        IBEP20 newLpToken = migrator.migrate(lpToken);
-
-        require(bal == newLpToken.balanceOf(address(this)), "migrate: bad");
-
-        pool.lpToken = newLpToken;
     }
 
     function poolLength() external view returns (uint256) {
