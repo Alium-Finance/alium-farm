@@ -8,6 +8,7 @@ import "@alium-official/alium-swap-lib/contracts/access/Ownable.sol";
 import "./interfaces/IAliumToken.sol";
 import "./interfaces/IStrongHolder.sol";
 import "./interfaces/IOwnable.sol";
+import "./interfaces/IFarmingTicketWindow.sol";
 
 // MasterChef is the master of Alium. He can make Alium and he is a fair guy.
 //
@@ -66,6 +67,8 @@ contract MasterChef is Ownable {
     address public devaddr;
     // Strong Holders Pool contact
     address public shp;
+    // Farming Ticket Window
+    address public ticketWindow;
     // SHP status
     bool public shpStatus;
     // Bonus muliplier for early alm makers.
@@ -91,6 +94,7 @@ contract MasterChef is Ownable {
         IAliumToken _alm,
         address _devaddr,
         address _shp,
+        address _farmingTicketWindow,
         uint256 _startBlock,
         BlockRewardConstructor[] memory _rewards
     ) public {
@@ -99,6 +103,7 @@ contract MasterChef is Ownable {
         alm = _alm;
         devaddr = _devaddr;
         shp = _shp;
+        ticketWindow = _farmingTicketWindow;
         startBlock = _startBlock;
 
         BlockRewardConstructor memory _reward;
@@ -130,7 +135,7 @@ contract MasterChef is Ownable {
     }
 
     // Deposit LP tokens to MasterChef for ALM allocation.
-    function deposit(uint256 _pid, uint256 _amount) external {
+    function deposit(uint256 _pid, uint256 _amount) external canDeposit {
         require (_pid != 0, "MasterChef: withdraw ALM by unstaking");
 
         _deposit(_pid, _amount);
@@ -144,7 +149,7 @@ contract MasterChef is Ownable {
     }
 
     // Stake ALM tokens to MasterChef
-    function stake(uint256 _amount) external {
+    function stake(uint256 _amount) external canDeposit {
         _deposit(0, _amount);
     }
 
@@ -383,5 +388,13 @@ contract MasterChef is Ownable {
         require(startBlock + 60_000_000 < block.number, "ALM ownership locked");
 
         IOwnable(address(alm)).transferOwnership(owner());
+    }
+
+    modifier canDeposit() {
+        require(
+            IFarmingTicketWindow(ticketWindow).hasTicket(msg.sender),
+            "Account has no ticket"
+        );
+        _;
     }
 }
