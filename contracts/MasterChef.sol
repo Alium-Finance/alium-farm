@@ -117,14 +117,14 @@ contract MasterChef is Ownable {
         // staking pool
         poolInfo.push(PoolInfo({
             lpToken: _alm,
-            allocPoint: 1000,
+            allocPoint: 0,
             lastRewardBlock: startBlock,
             accALMPerShare: 0,
             tokenlockShare: 0,
             depositFee: 0
         }));
 
-        totalAllocPoint = 1000;
+        totalAllocPoint = 0;
 
         IBEP20(alm).safeApprove(shp, type(uint256).max);
     }
@@ -202,7 +202,6 @@ contract MasterChef is Ownable {
             tokenlockShare: _tokenLockShare,
             depositFee: _depositFee
         }));
-        _updateStakingPool();
         _addedLP[address(_lpToken)] = true;
     }
 
@@ -222,7 +221,6 @@ contract MasterChef is Ownable {
         poolInfo[_pid].depositFee = _depositFee;
         if (prevAllocPoint != _allocPoint) {
             totalAllocPoint = totalAllocPoint.sub(prevAllocPoint).add(_allocPoint);
-            _updateStakingPool();
         }
     }
 
@@ -305,19 +303,6 @@ contract MasterChef is Ownable {
             alm.transfer(_to, ALMBal);
         } else {
             alm.transfer(_to, _amount);
-        }
-    }
-
-    function _updateStakingPool() internal {
-        uint256 length = poolInfo.length;
-        uint256 points = 0;
-        for (uint256 pid = 1; pid < length; ++pid) {
-            points = points.add(poolInfo[pid].allocPoint);
-        }
-        if (points != 0) {
-            points = points.div(3);
-            totalAllocPoint = totalAllocPoint.sub(poolInfo[0].allocPoint).add(points);
-            poolInfo[0].allocPoint = points;
         }
     }
 

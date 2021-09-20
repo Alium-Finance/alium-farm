@@ -12,8 +12,12 @@ const DEAD_ADDRESS = '0x000000000000000000000000000000000000dead'
 
 contract('MasterChef', ([alice, bob, dev, minter]) => {
     
-    let alm, chef, shp,
-        lp1, lp2, lp3, lp4, lp5, lp6, lp7, lp8, lp9
+    let alm,
+        chef,
+        shp,
+        lp1,
+        lp2,
+        lp3;
 
     let snapshotId;
     
@@ -68,10 +72,9 @@ contract('MasterChef', ([alice, bob, dev, minter]) => {
         await timeMachine.revertToSnapshot(snapshotId);
     });
     
-    describe.only('MasterChef', () => {
+    describe('MasterChef', () => {
         it('real case', async () => {
             await time.advanceBlockTo('100');
-
             await chef.addPool('2000', 0, 0, lp1.address, true, { from: minter });
             await chef.addPool('1000', 0, 0, lp2.address, true, { from: minter });
             await chef.addPool('500', 0, 0, lp3.address, true, { from: minter });
@@ -209,6 +212,17 @@ contract('MasterChef', ([alice, bob, dev, minter]) => {
             assert.equal((await chef.devaddr()).valueOf(), bob);
             await chef.dev(alice, { from: bob });
             assert.equal((await chef.devaddr()).valueOf(), alice);
+        })
+
+        it('should correct update allocation points', async () => {
+            assert.equal(Number(await chef.totalAllocPoint()), 0);
+            await chef.addPool('1000', 0, 0, lp1.address, true, { from: minter });
+            assert.equal(Number(await chef.totalAllocPoint()), 1000);
+            let poolId = Number(await chef.poolLength()) - 1
+            await chef.setPool(poolId, '500', 0, 0, true, { from: minter });
+            assert.equal(Number(await chef.totalAllocPoint()), 500);
+            await chef.setPool(0, '1', 0, 0, true, { from: minter });
+            assert.equal(Number(await chef.totalAllocPoint()), 501);
         })
     })
 });
