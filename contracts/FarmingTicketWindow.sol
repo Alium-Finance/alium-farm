@@ -29,7 +29,6 @@ contract FarmingTicketWindow is Ownable {
 
     function buyTicket() external {
         require(!hasTicket[msg.sender], "Already has ticket");
-
         IBEP20(alm).safeTransferFrom(msg.sender, founder, ticketPrice);
         hasTicket[msg.sender] = true;
         IAliumCollectible(nft).mint(msg.sender);

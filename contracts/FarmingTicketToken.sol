@@ -3,8 +3,9 @@ pragma solidity >=0.6.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
+import "./interfaces/IAliumCollectible.sol";
 
-contract FarmingTicketToken is ERC721, Ownable {
+contract FarmingTicketToken is IAliumCollectible, ERC721, Ownable {
     Counters.Counter private _tokenIdTracker;
 
     constructor()
@@ -14,7 +15,7 @@ contract FarmingTicketToken is ERC721, Ownable {
         //
     }
 
-    function mint(address _to) external onlyOwner {
+    function mint(address _to) external override onlyOwner {
         Counters.increment(_tokenIdTracker);
         _mint(_to, Counters.current(_tokenIdTracker));
     }
