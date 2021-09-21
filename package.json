@@ -4,11 +4,10 @@
   "main": "index.js",
   "scripts": {
     "migrate": "truffle migrate --network bscTestnet --reset",
-    "build": "truffle compile --network bscTestnet",
+    "build": "truffle compile",
     "test": "npx builder test",
     "coverage": "npx builder coverage",
-    "dist": "truffle-flattener ./contracts/AliumToken.sol > ./flat/AliumToken.Full.sol",
-    "dist:bep20mock": "truffle-flattener ./contracts/libs/MockBEP20.sol > ./flat/MockBEP20.Full.sol"
+    "dist": "npx waffle flatten"
   },
   "dependencies": {
     "@alium-official/alium-swap-lib": "0.0.2",
