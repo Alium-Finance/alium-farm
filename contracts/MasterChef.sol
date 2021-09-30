@@ -230,10 +230,15 @@ contract MasterChef is Ownable {
     }
 
     // Update dev address by the previous dev.
-    function dev(address _devaddr) external {
+    function setDev(address _devaddr) external {
         require(msg.sender == devaddr, "MasterChef: dev wut?");
 
         devaddr = _devaddr;
+    }
+
+    // Update shp address by the previous dev.
+    function setSHP(address _shp) external onlyOwner {
+        shp = _shp;
     }
 
     function poolLength() external view returns (uint256) {
