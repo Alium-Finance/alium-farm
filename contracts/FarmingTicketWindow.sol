@@ -56,9 +56,10 @@ contract FarmingTicketWindow is Ownable {
         }
     }
 
-    function setFounder(address _founder) external onlyOwner notTicketHolder {
-        require(_founder != address(0), "Zero address");
-        require(_founder != founder, "The same address");
+    function setFounder(address _founder) external {
+        require(msg.sender == founder, "TicketWindow: founder wut?");
+        require(_founder != address(0), "TicketWindow: zero address set");
+        require(_founder != founder, "TicketWindow: the same address");
 
         founder = _founder;
         emit FounderSet(_founder);
