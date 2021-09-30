@@ -80,7 +80,7 @@ contract MasterChef is Ownable {
     mapping (uint256 => mapping (address => UserInfo)) public userInfo;
     mapping (address => bool) internal _addedLP;
     // Total allocation points. Must be the sum of all allocation points in all pools.
-    uint256 public totalAllocPoint = 0;
+    uint256 public totalAllocPoint;
     // The block number when ALM mining starts.
     uint256 public startBlock;
 
@@ -128,8 +128,6 @@ contract MasterChef is Ownable {
             tokenlockShare: 0,
             depositFee: 0
         }));
-
-        totalAllocPoint = 0;
 
         IBEP20(alm).safeApprove(shp, type(uint256).max);
     }
