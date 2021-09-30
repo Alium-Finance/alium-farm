@@ -71,10 +71,22 @@ module.exports = {
     // production: true    // Treats this network as if it was a public net. (default: false)
     // }
 
+    bscMainnet: {
+      provider: () => new HDWalletProvider(bscTestnet_PK, `https://bsc-dataseed.binance.org/`),
+      network_id: 56,   // This network is yours, in the cloud.
+      production: true,  // Treats this network as if it was a public net. (default: false)
+      confirmations: 12,
+      timeoutBlocks: 3,
+      gasPrice: 5000000000 // 5 Gwai
+    },
+
     bscTestnet: {
       provider: () => new HDWalletProvider(bscTestnet_PK, `https://data-seed-prebsc-2-s1.binance.org:8545/`),
       network_id: 97,   // This network is yours, in the cloud.
-      production: true    // Treats this network as if it was a public net. (default: false)
+      production: false,  // Treats this network as if it was a public net. (default: false)
+      confirmations: 5,
+      timeoutBlocks: 10,
+      gasPrice: 10000000000 // 10 Gwai
     }
   },
 
@@ -106,5 +118,13 @@ module.exports = {
 
   db: {
     enabled: false
+  },
+
+  plugins: [
+    'truffle-plugin-verify'
+  ],
+
+  api_keys: {
+    etherscan: 'CXRVDBEKQ3WNY87NC9DMB1PZCHGRAG5Y9X'
   }
 };
