@@ -9,6 +9,7 @@ import "./interfaces/IAliumToken.sol";
 import "./interfaces/IStrongHolder.sol";
 import "./interfaces/IOwnable.sol";
 import "./interfaces/IFarmingTicketWindow.sol";
+import "./interfaces/IAliumCashbox.sol";
 
 // MasterChef is the master of Alium. He can make Alium and he is a fair guy.
 //
@@ -69,6 +70,8 @@ contract MasterChef is Ownable {
     address public shp;
     // Farming Ticket Window
     address public ticketWindow;
+    // Alium cashbox
+    address public almCashbox;
     // SHP status
     bool public shpStatus;
     // Bonus muliplier for early alm makers.
@@ -95,14 +98,24 @@ contract MasterChef is Ownable {
         address _devaddr,
         address _shp,
         address _farmingTicketWindow,
+        address _cashbox,
         uint256 _startBlock,
         BlockRewardConstructor[] memory _rewards
     ) public {
-        require(_devaddr != address(0), "MasterChef: set wrong dev");
+        require(
+            address(_alm) != address(0) &&
+            _devaddr != address(0) &&
+            _shp != address(0) &&
+            _farmingTicketWindow != address(0) &&
+            _cashbox != address(0)
+            ,
+            "MasterChef: set wrong dev"
+        );
 
         alm = _alm;
         devaddr = _devaddr;
         shp = _shp;
+        cashbox = _cashbox;
         ticketWindow = _farmingTicketWindow;
         startBlock = _startBlock;
 
@@ -295,8 +308,9 @@ contract MasterChef is Ownable {
         uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
 
         uint256 almReward = multiplier.mul(blockReward()).mul(pool.allocPoint).div(totalAllocPoint);
-        alm.mint(devaddr, almReward.div(10));
-        alm.mint(address(this), almReward);
+        uint256 devReward = almReward.div(100).mul(10);
+        IAliumCashbox(cashbox).withdraw(almReward + devReward);
+        _safeAlmTransfer(devaddr, devReward);
         pool.accALMPerShare = pool.accALMPerShare.add(almReward.mul(1e12).div(lpSupply));
         pool.lastRewardBlock = block.number;
     }
