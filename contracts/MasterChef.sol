@@ -403,9 +403,6 @@ contract MasterChef is Ownable {
     }
 
     function transferAliumOwnership() external onlyOwner {
-        // 60_000_000 blocks ~ 6 months
-        require(startBlock + 60_000_000 < block.number, "ALM ownership locked");
-
         IOwnable(address(alm)).transferOwnership(owner());
     }
 
