@@ -236,7 +236,9 @@ contract MasterChef is Ownable {
 
     // Update shp address by the previous dev.
     function setSHP(address _shp) external onlyOwner {
+        IBEP20(alm).approve(shp, type(uint256).min);
         shp = _shp;
+        IBEP20(alm).safeApprove(shp, type(uint256).max);
     }
 
     function poolLength() external view returns (uint256) {
