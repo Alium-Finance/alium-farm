@@ -8,6 +8,8 @@ import "@alium-official/alium-swap-lib/contracts/access/Ownable.sol";
 import "./interfaces/IAliumToken.sol";
 import "./interfaces/IStrongHolder.sol";
 import "./interfaces/IOwnable.sol";
+import "./interfaces/IFarmingTicketWindow.sol";
+import "./interfaces/IAliumCashbox.sol";
 
 // MasterChef is the master of Alium. He can make Alium and he is a fair guy.
 //
@@ -66,6 +68,10 @@ contract MasterChef is Ownable {
     address public devaddr;
     // Strong Holders Pool contact
     address public shp;
+    // Farming Ticket Window
+    address public ticketWindow;
+    // Alium cashbox
+    address public almCashbox;
     // SHP status
     bool public shpStatus;
     // Bonus muliplier for early alm makers.
@@ -77,7 +83,7 @@ contract MasterChef is Ownable {
     mapping (uint256 => mapping (address => UserInfo)) public userInfo;
     mapping (address => bool) internal _addedLP;
     // Total allocation points. Must be the sum of all allocation points in all pools.
-    uint256 public totalAllocPoint = 0;
+    uint256 public totalAllocPoint;
     // The block number when ALM mining starts.
     uint256 public startBlock;
 
@@ -91,14 +97,26 @@ contract MasterChef is Ownable {
         IAliumToken _alm,
         address _devaddr,
         address _shp,
+        address _farmingTicketWindow,
+        address _cashbox,
         uint256 _startBlock,
         BlockRewardConstructor[] memory _rewards
     ) public {
-        require(_devaddr != address(0), "MasterChef: set wrong dev");
+        require(
+            address(_alm) != address(0) &&
+            _devaddr != address(0) &&
+            _shp != address(0) &&
+            _farmingTicketWindow != address(0) &&
+            _cashbox != address(0)
+            ,
+            "MasterChef: set wrong dev"
+        );
 
         alm = _alm;
         devaddr = _devaddr;
         shp = _shp;
+        cashbox = _cashbox;
+        ticketWindow = _farmingTicketWindow;
         startBlock = _startBlock;
 
         BlockRewardConstructor memory _reward;
@@ -124,13 +142,11 @@ contract MasterChef is Ownable {
             depositFee: 0
         }));
 
-        totalAllocPoint = 0;
-
         IBEP20(alm).safeApprove(shp, type(uint256).max);
     }
 
     // Deposit LP tokens to MasterChef for ALM allocation.
-    function deposit(uint256 _pid, uint256 _amount) external {
+    function deposit(uint256 _pid, uint256 _amount) external canDeposit {
         require (_pid != 0, "MasterChef: withdraw ALM by unstaking");
 
         _deposit(_pid, _amount);
@@ -144,7 +160,7 @@ contract MasterChef is Ownable {
     }
 
     // Stake ALM tokens to MasterChef
-    function stake(uint256 _amount) external {
+    function stake(uint256 _amount) external canDeposit {
         _deposit(0, _amount);
     }
 
@@ -225,10 +241,17 @@ contract MasterChef is Ownable {
     }
 
     // Update dev address by the previous dev.
-    function dev(address _devaddr) external {
+    function setDev(address _devaddr) external {
         require(msg.sender == devaddr, "MasterChef: dev wut?");
 
         devaddr = _devaddr;
+    }
+
+    // Update shp address by the previous dev.
+    function setSHP(address _shp) external onlyOwner {
+        IBEP20(alm).approve(shp, type(uint256).min);
+        shp = _shp;
+        IBEP20(alm).safeApprove(shp, type(uint256).max);
     }
 
     function poolLength() external view returns (uint256) {
@@ -285,8 +308,9 @@ contract MasterChef is Ownable {
         uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
 
         uint256 almReward = multiplier.mul(blockReward()).mul(pool.allocPoint).div(totalAllocPoint);
-        alm.mint(devaddr, almReward.div(10));
-        alm.mint(address(this), almReward);
+        uint256 devReward = almReward.div(100).mul(10);
+        IAliumCashbox(cashbox).withdraw(almReward + devReward);
+        _safeAlmTransfer(devaddr, devReward);
         pool.accALMPerShare = pool.accALMPerShare.add(almReward.mul(1e12).div(lpSupply));
         pool.lastRewardBlock = block.number;
     }
@@ -379,9 +403,14 @@ contract MasterChef is Ownable {
     }
 
     function transferAliumOwnership() external onlyOwner {
-        // 60_000_000 blocks ~ 6 months
-        require(startBlock + 60_000_000 < block.number, "ALM ownership locked");
-
         IOwnable(address(alm)).transferOwnership(owner());
+    }
+
+    modifier canDeposit() {
+        require(
+            IFarmingTicketWindow(ticketWindow).hasTicket(msg.sender),
+            "Account has no ticket"
+        );
+        _;
     }
 }

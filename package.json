@@ -4,11 +4,11 @@
   "main": "index.js",
   "scripts": {
     "migrate": "truffle migrate --network bscTestnet --reset",
-    "build": "truffle compile --network bscTestnet",
+    "migrate:prod": "truffle migrate --network bscMainnet --reset",
+    "build": "truffle compile",
     "test": "npx builder test",
     "coverage": "npx builder coverage",
-    "dist": "truffle-flattener ./contracts/AliumToken.sol > ./flat/AliumToken.Full.sol",
-    "dist:bep20mock": "truffle-flattener ./contracts/libs/MockBEP20.sol > ./flat/MockBEP20.Full.sol"
+    "dist": "npx waffle flatten"
   },
   "dependencies": {
     "@alium-official/alium-swap-lib": "0.0.2",
@@ -30,7 +30,7 @@
     "truffle": "^5.1.58",
     "truffle-flattener": "^1.4.4",
     "truffle-hdwallet-provider": "^1.0.17",
-    "truffle-plugin-verify": "^0.4.0",
+    "truffle-plugin-verify": "^0.5.15",
     "web3": "^1.3.0"
   }
 }
