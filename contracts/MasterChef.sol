@@ -71,7 +71,7 @@ contract MasterChef is Ownable {
     // Farming Ticket Window
     address public ticketWindow;
     // Alium cashbox
-    address public almCashbox;
+    address public cashbox;
     // SHP status
     bool public shpStatus;
     // Bonus muliplier for early alm makers.
