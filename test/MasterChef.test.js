@@ -5,6 +5,7 @@ const AliumToken = artifacts.require('AliumToken');
 const MasterChef = artifacts.require('MasterChef');
 const MockBEP20 = artifacts.require('libs/MockBEP20');
 const SHPMock = artifacts.require('test/SHPMock');
+const MockAliumCashbox = artifacts.require('test/MockAliumCashbox');
 
 const { MAX_UINT256, ZERO_ADDRESS } = constants;
 
@@ -15,6 +16,7 @@ contract('MasterChef', ([alice, bob, dev, minter]) => {
     let alm,
         chef,
         shp,
+        cashbox,
         lp1,
         lp2,
         lp3;
@@ -27,10 +29,12 @@ contract('MasterChef', ([alice, bob, dev, minter]) => {
         lp2 = await MockBEP20.new('LPToken', 'LP2', '1000000', { from: minter });
         lp3 = await MockBEP20.new('LPToken', 'LP3', '1000000', { from: minter });
         shp = await SHPMock.new(alm.address, { from: minter });
+        cashbox = await MockAliumCashbox.new(alm.address, minter, { from: minter });
         chef = await MasterChef.new(
             alm.address,
             dev,
             shp.address,
+            cashbox.address,
             0,
             [
                 {

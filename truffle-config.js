@@ -84,8 +84,8 @@ module.exports = {
       provider: () => new HDWalletProvider(bscTestnet_PK, `https://data-seed-prebsc-2-s1.binance.org:8545/`),
       network_id: 97,   // This network is yours, in the cloud.
       production: false,  // Treats this network as if it was a public net. (default: false)
-      confirmations: 5,
-      timeoutBlocks: 10,
+      confirmations: 1,
+      timeoutBlocks: 1,
       gasPrice: 10000000000 // 10 Gwai
     }
   },

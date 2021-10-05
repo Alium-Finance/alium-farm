@@ -15,11 +15,43 @@ async function deploy(deployer, network, accounts) {
         const ALM = '0xfECb47AFD19d96F6bDa5d5883FcA7230beb6fD70'
         const DEV = '0xaD0E3142A17e06dB27e529Ed82858A6a3Fdf67BD'
         const SHP = '0x65533E342449dcC24062126A3aa17E670f1B762D'
-
-        await deployer.deploy(MockAliumCashbox)
+        const farmingTicketWindow = '0x3Ac855483A34C5B563625DA65D9bae3DE72EcaC7'
         const aliumCashbox = await MockAliumCashbox.deployed()
+        const cashbox = aliumCashbox.address
+        const startBlock = '12953504'
+        const rewards = [
+            {"amount": "7000000000000000000", "blocks": "428572"},
+            {"amount": "5000000000000000000", "blocks": "300000"},
+            {"amount": "2000000000000000000", "blocks": "250000"}
+        ]
 
-        await aliumCashbox.initialize(ALM, (typeof accounts === 'string') ? accounts : accounts[0])
+        await deployer.deploy(MasterChef, ALM, DEV, SHP, farmingTicketWindow, cashbox, startBlock, rewards)
+        const masterChef = await MasterChef.deployed()
+
+        // ALM-BNB  LP
+        await masterChef.addPool(
+            100,
+            90,
+            0,
+            '0xdcf05c93b4940192cc244c92330566b1211a028d',
+            true
+        )
+
+        // USDT-ETH LP
+        await masterChef.addPool(
+            100,
+            90,
+            100,
+            '0xdC9747Fda30F57E6665345358342bB12316F0F27',
+            true
+        )
+
+        await masterChef.setShpStatus(true)
+
+        const aliumToken = new AliumToken(AliumToken.abi, ALM)
+        await aliumToken.mint(masterChef.address, '5000000000000000000000000')
+
+        await aliumCashbox.setWalletLimit(masterChef.address, MAX_UINT256)
     }
 
 
