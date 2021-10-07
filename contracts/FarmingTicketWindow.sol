@@ -9,7 +9,7 @@ import "./interfaces/IAliumCollectible.sol";
 contract FarmingTicketWindow is Ownable {
     using SafeBEP20 for IBEP20;
 
-    uint256 public constant ticketPrice = 1500e18; // 1500 ALM
+    uint256 public constant TICKET_PRICE = 1500e18; // 1500 ALM
     address public immutable alm;
     address public immutable nft;
     address public founder;
@@ -35,7 +35,7 @@ contract FarmingTicketWindow is Ownable {
 
     function buyTicket() external notTicketHolder {
         address buyer = _msgSender();
-        IBEP20(alm).safeTransferFrom(buyer, founder, ticketPrice);
+        IBEP20(alm).safeTransferFrom(buyer, founder, TICKET_PRICE);
         hasTicket[buyer] = true;
         IAliumCollectible(nft).mint(buyer);
         emit TicketBought(buyer);
