@@ -41,7 +41,9 @@ contract FarmingTicketWindow is Ownable {
         emit TicketBought(buyer);
     }
 
-    function passFree(address _account) external onlyOwner notTicketHolder {
+    function passFree(address _account) external onlyOwner {
+        require(!hasTicket[_account], "TicketWindow: account already has ticket");
+
         hasTicket[_account] = true;
         emit EntranceAllowed(_account);
     }
