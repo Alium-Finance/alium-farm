@@ -141,15 +141,11 @@ contract MasterChef is Ownable {
 
     // Deposit LP tokens to MasterChef for ALM allocation.
     function deposit(uint256 _pid, uint256 _amount) external canDeposit {
-        require (_pid != 0, "MasterChef: withdraw ALM by unstaking");
-
         _deposit(_pid, _amount);
     }
 
     // Withdraw LP tokens from MasterChef.
     function withdraw(uint256 _pid, uint256 _amount) external {
-        require (_pid != 0, "MasterChef: withdraw ALM by unstaking");
-
         _withdraw(_pid, _amount);
     }
 
