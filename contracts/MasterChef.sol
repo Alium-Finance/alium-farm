@@ -132,16 +132,6 @@ contract MasterChef is Ownable {
             i++;
         }
 
-        // staking pool
-        poolInfo.push(PoolInfo({
-            lpToken: _alm,
-            allocPoint: 0,
-            lastRewardBlock: startBlock,
-            accALMPerShare: 0,
-            tokenlockShare: 0,
-            depositFee: 0
-        }));
-
         IBEP20(alm).safeApprove(shp, type(uint256).max);
     }
 
@@ -157,16 +147,6 @@ contract MasterChef is Ownable {
         require (_pid != 0, "MasterChef: withdraw ALM by unstaking");
 
         _withdraw(_pid, _amount);
-    }
-
-    // Stake ALM tokens to MasterChef
-    function stake(uint256 _amount) external canDeposit {
-        _deposit(0, _amount);
-    }
-
-    // Withdraw ALM tokens from STAKING.
-    function unstake(uint256 _amount) external {
-        _withdraw(0, _amount);
     }
 
     // Withdraw without caring about rewards. EMERGENCY ONLY.
@@ -203,6 +183,7 @@ contract MasterChef is Ownable {
         require(_tokenLockShare <= 100, "Wrong set token lock shares");
         require(_depositFee <= 100_000, "Wrong set deposit fee");
         require(!_addedLP[address(_lpToken)], "Pool with this LP token already exist");
+        require(address(_lpToken) != address(alm), "Staking disabled");
 
         if (_withUpdate) {
             massUpdatePools();
