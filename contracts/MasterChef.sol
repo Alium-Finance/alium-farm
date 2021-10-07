@@ -298,7 +298,7 @@ contract MasterChef is Ownable {
         uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
 
         uint256 almReward = multiplier.mul(blockReward()).mul(pool.allocPoint).div(totalAllocPoint);
-        uint256 devReward = almReward.div(100).mul(10);
+        uint256 devReward = almReward.mul(10).div(100);
         IAliumCashbox(cashbox).withdraw(almReward + devReward);
         _safeAlmTransfer(devaddr, devReward);
         pool.accALMPerShare = pool.accALMPerShare.add(almReward.mul(1e12).div(lpSupply));
