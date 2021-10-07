@@ -92,6 +92,10 @@ contract MasterChef is Ownable {
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
+    event MultiplierUpdated(uint256 value);
+    event SHPUpdated(address account);
+    event DevUpdated(address account);
+    event SHPChangedStatusTo(bool state);
 
     constructor(
         IAliumToken _alm,
@@ -161,11 +165,13 @@ contract MasterChef is Ownable {
 
     function updateMultiplier(uint256 multiplierNumber) external onlyOwner {
         BONUS_MULTIPLIER = multiplierNumber;
+        emit MultiplierUpdated(multiplierNumber);
     }
 
     // Set the shp contract. Can only be called by the owner.
     function setShpStatus(bool _enable) external onlyOwner {
         shpStatus = _enable;
+        emit SHPChangedStatusTo(_enable);
     }
 
     // Add a new lp to the pool. Can only be called by the owner.
@@ -226,6 +232,7 @@ contract MasterChef is Ownable {
         require(msg.sender == devaddr, "MasterChef: dev wut?");
 
         devaddr = _devaddr;
+        emit DevUpdated(_devaddr);
     }
 
     // Update shp address by the previous dev.
@@ -233,6 +240,7 @@ contract MasterChef is Ownable {
         IBEP20(alm).approve(shp, type(uint256).min);
         shp = _shp;
         IBEP20(alm).safeApprove(shp, type(uint256).max);
+        emit SHPUpdated(_shp);
     }
 
     function poolLength() external view returns (uint256) {
