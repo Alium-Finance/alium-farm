@@ -348,6 +348,8 @@ contract MasterChef is Ownable {
                         } else {
                             toTokenLock = 0;
                         }
+                    } else {
+                        toTokenLock = 0;
                     }
                 } else {}
 
