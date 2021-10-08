@@ -62,6 +62,9 @@ contract MasterChef is Ownable {
         uint end;       // Block end number
     }
 
+    // Max reward plan length
+    uint256 public constant MAX_REWARDS = 10;
+
     // The ALM TOKEN!
     IAliumToken public alm;
     // Dev address.
@@ -115,6 +118,11 @@ contract MasterChef is Ownable {
             ,
             "MasterChef: set wrong dev"
         );
+        require(
+            _rewards.length != 0 &&
+            _rewards.length <= MAX_REWARDS,
+            "MasterChef: rewards length"
+        );
 
         alm = _alm;
         devaddr = _devaddr;
@@ -126,6 +134,7 @@ contract MasterChef is Ownable {
         BlockRewardConstructor memory _reward;
         uint i = 0;
         uint l = _rewards.length;
+
         while (i < l) {
             _reward = _rewards[i];
             _blockRewards.push(BlockReward({
