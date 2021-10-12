@@ -6,16 +6,20 @@ const MasterChef = artifacts.require('MasterChef');
 const MockBEP20 = artifacts.require('libs/MockBEP20');
 const SHPMock = artifacts.require('test/SHPMock');
 const MockAliumCashbox = artifacts.require('test/MockAliumCashbox');
+const FarmingTicketToken = artifacts.require("FarmingTicketToken");
+const FarmingTicketWindow = artifacts.require("FarmingTicketWindow");
 
 const { MAX_UINT256, ZERO_ADDRESS } = constants;
 
 const DEAD_ADDRESS = '0x000000000000000000000000000000000000dead'
 
-contract('MasterChef', ([alice, bob, dev, minter]) => {
+contract('MasterChef', ([alice, bob, dev, founder, minter]) => {
     
     let alm,
         chef,
         shp,
+        ticketToken,
+        ticketWindow,
         cashbox,
         lp1,
         lp2,
@@ -29,19 +33,33 @@ contract('MasterChef', ([alice, bob, dev, minter]) => {
         lp2 = await MockBEP20.new('LPToken', 'LP2', '1000000', { from: minter });
         lp3 = await MockBEP20.new('LPToken', 'LP3', '1000000', { from: minter });
         shp = await SHPMock.new(alm.address, { from: minter });
+        ticketToken = await FarmingTicketToken.new({ from: minter });
+        ticketWindow = await FarmingTicketWindow.new(alm.address, ticketToken.address, founder, { from: minter });
         cashbox = await MockAliumCashbox.new(alm.address, minter, { from: minter });
+        let startBlock = Number(await time.latestBlock())
+
+        console.log(
+            alm.address,
+            dev,
+            shp.address,
+            ticketWindow.address,
+            cashbox.address,
+            startBlock
+        )
+
         chef = await MasterChef.new(
             alm.address,
             dev,
             shp.address,
+            ticketWindow.address,
             cashbox.address,
-            0,
+            startBlock,
             [
                 {
-                    amount: ether("30").toString(),
+                    amount: ether("7").toString(),
                     blocks: 100
                 },                {
-                    amount: ether("10").toString(),
+                    amount: ether("5").toString(),
                     blocks: 100
                 },                {
                     amount: ether("3").toString(),
@@ -53,6 +71,7 @@ contract('MasterChef', ([alice, bob, dev, minter]) => {
             }
         );
 
+        await alm.mint(cashbox.address, '5000000000000000000000000', { from: minter });
         await alm.mint(alice, '10000', { from: minter });
         await alm.mint(bob, '20000', { from: minter });
 
@@ -64,7 +83,10 @@ contract('MasterChef', ([alice, bob, dev, minter]) => {
         await lp2.transfer(alice, '2000', { from: minter });
         await lp3.transfer(alice, '2000', { from: minter });
 
-        await alm.transferOwnership(chef.address, { from: minter });
+        //await alm.transferOwnership(chef.address, { from: minter });
+        await cashbox.initialize(alm.address, founder, { from: minter })
+        await cashbox.setWalletLimit(chef.address, MAX_UINT256, { from: minter })
+        await ticketToken.transferOwnership(cashbox.address, { from: minter });
     });
 
     beforeEach(async() => {
@@ -77,26 +99,36 @@ contract('MasterChef', ([alice, bob, dev, minter]) => {
     });
     
     describe('MasterChef', () => {
-        it('real case', async () => {
-            await time.advanceBlockTo('100');
-            await chef.addPool('2000', 0, 0, lp1.address, true, { from: minter });
-            await chef.addPool('1000', 0, 0, lp2.address, true, { from: minter });
-            await chef.addPool('500', 0, 0, lp3.address, true, { from: minter });
-            assert.equal((await chef.poolLength()).toString(), "4");
 
-            await time.advanceBlockTo('200');
+        it('real case', async () => {
+            // await time.advanceBlockTo('100');
+            await chef.addPool('100', 0, 0, lp1.address, true, { from: minter });
+            await chef.addPool('100', 0, 0, lp2.address, true, { from: minter });
+            assert.equal((await chef.poolLength()).toString(), "2");
+
+            await ticketWindow.passFree(alice, { from: minter })
+            await ticketWindow.passFree(bob, { from: minter })
+
+            // await time.advanceBlockTo('200');
             await lp1.approve(chef.address, MAX_UINT256, { from: alice });
             assert.equal((await alm.balanceOf(alice)).toString(), '10000');
 
-            console.log((await lp1.balanceOf(alice)).toString())
-            await chef.deposit(1, '20', { from: alice });
-            await chef.withdraw(1, '20', { from: alice });
-            assert.equal((await alm.balanceOf(alice)).toString(), '1285897985426499498');
+            // console.log((await lp1.balanceOf(alice)).toString())
+            await chef.deposit(0, '1', { from: alice });
+            await chef.withdraw(0, '0', { from: alice });
+            assert.equal((await alm.balanceOf(alice)).toString(), '3500000000000010000');
+            assert.equal((await alm.balanceOf(chef.address)).toString(), '0');
+            await chef.withdraw(0, '0', { from: alice });
+            assert.equal((await alm.balanceOf(chef.address)).toString(), '0');
 
-            await alm.approve(chef.address, MAX_UINT256, { from: alice });
-            await chef.stake('20', { from: alice });
-            await chef.stake('0', { from: alice });
-            assert.equal((await alm.balanceOf(alice)).toString(), '2035576510930142855');
+            await lp1.approve(chef.address, MAX_UINT256, { from: bob });
+            await chef.deposit(0, '1', { from: bob });
+            await chef.deposit(0, '0', { from: alice });
+
+            await chef.updateMultiplier(0, { from: minter })
+            await chef.deposit(0, '0', { from: bob });
+
+            assert.equal((await alm.balanceOf(chef.address)).toString(), '0');
         })
 
         it('#blockReward', async () => {
