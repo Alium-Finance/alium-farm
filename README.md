@@ -1,6 +1,6 @@
 # Alium Farming { ...🥕🥦🥬 }
         
-https://alium.finance. Feel free to read the code. 
+https://alium.finance/farms. Feel free to read the code. 
 
 More details coming soon.
 
